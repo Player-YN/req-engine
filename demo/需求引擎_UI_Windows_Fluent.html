@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>需求引擎 · Windows Fluent 看板</title>
+  <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
+  <style>
+    :root {
+      --text: #1a1a1a;
+      --text-2: #5d5d5d;
+      --stroke: rgba(0,0,0,.08);
+      --brand: #005fb8;
+      --brand-bg: rgba(0,95,184,.1);
+      --danger: #c42b1c;
+      --warning: #9d5d00;
+      --bg-soft: rgba(249,249,249,.92);
+      --card: #fff;
+      --radius: 8px;
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px 16px 40px;
+      color: var(--text);
+      font-size: 13px;
+      background:
+        radial-gradient(1200px 600px at 10% 0%, #7eb8ff55, transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, #c4a5ff44, transparent 50%),
+        linear-gradient(165deg, #4a6fa5 0%, #6b8cbe 40%, #b8c9dc 100%);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .proto-bar {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+      z-index: 200;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(20,20,20,.88); color: #fff;
+      padding: 8px 12px; border-radius: 10px;
+      font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      max-width: 96vw; flex-wrap: wrap; justify-content: center;
+    }
+    .proto-bar strong { font-weight: 600; opacity: .9; margin-right: 4px; }
+    .proto-bar button {
+      border: 1px solid rgba(255,255,255,.2); background: transparent;
+      color: #fff; border-radius: 6px; padding: 5px 10px; font: inherit;
+      cursor: pointer;
+    }
+    .proto-bar button:hover { background: rgba(255,255,255,.1); }
+    .proto-bar button.on { background: #fff; color: #111; border-color: #fff; font-weight: 600; }
+
+    .window {
+      width: min(1280px, 100%);
+      height: min(820px, calc(100vh - 72px));
+      margin-top: 28px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(243,243,243,.94), rgba(249,249,249,.96));
+      backdrop-filter: blur(40px) saturate(140%);
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,.18), 0 16px 48px rgba(0,0,0,.28);
+    }
+    .titlebar {
+      height: 32px; display: flex; align-items: center; padding-left: 12px; flex-shrink: 0;
+    }
+    .app-glyph {
+      width: 16px; height: 16px; border-radius: 3px;
+      background: linear-gradient(135deg, #0078d4, #5c2d91); margin-right: 8px;
+    }
+    .app-name { font-size: 12px; color: var(--text-2); flex: 1; }
+    .caption { display: flex; height: 100%; }
+    .caption button {
+      width: 46px; height: 32px; border: none; background: transparent;
+      display: grid; place-items: center; font-size: 10px; color: var(--text);
+    }
+    .caption button:hover { background: rgba(0,0,0,.06); }
+    .caption .win-close:hover { background: #c42b1c; color: #fff; }
+
+    .project-tabs {
+      display: none;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 8px;
+      background: rgba(0,0,0,.04);
+      border-bottom: 1px solid var(--stroke);
+      min-height: 36px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    body.mode-tabs .project-tabs { display: flex; }
+    .ptab {
+      display: flex; align-items: center; gap: 8px;
+      max-width: 180px; height: 32px; padding: 0 12px;
+      border: 1px solid transparent; border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: transparent; color: var(--text-2);
+      font: inherit; font-size: 12px; cursor: pointer;
+      position: relative; top: 1px;
+    }
+    .ptab:hover { background: rgba(255,255,255,.5); color: var(--text); }
+    .ptab.on {
+      background: #fff; color: var(--text); font-weight: 600;
+      border-color: var(--stroke); box-shadow: 0 -1px 0 #fff;
+    }
+    .ptab .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .ptab .name {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ptab .x {
+      opacity: 0; border: none; background: transparent; cursor: pointer;
+      color: var(--text-2); font-size: 12px; padding: 0 2px; border-radius: 4px;
+    }
+    .ptab:hover .x, .ptab.on .x { opacity: .7; }
+    .ptab .x:hover { opacity: 1; background: rgba(0,0,0,.06); }
+    .ptab-add {
+      height: 28px; width: 28px; margin: 0 4px 2px; border-radius: 6px;
+      border: 1px dashed var(--stroke); background: transparent;
+      cursor: pointer; color: var(--text-2); font-size: 16px;
+    }
+    .ptab-add:hover { background: rgba(255,255,255,.7); color: var(--brand); }
+
+    .app-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 12px 10px 16px;
+      border-bottom: 1px solid var(--stroke);
+      flex-shrink: 0;
+    }
+    .app-header h1 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .spacer { flex: 1; }
+    fluent-text-field { min-width: 180px; --control-corner-radius: 4; }
+
+    .dropdown-wrap { display: none; position: relative; }
+    body.mode-dropdown .dropdown-wrap { display: block; }
+    body.mode-tabs .dropdown-wrap,
+    body.mode-sidebar .dropdown-wrap { display: none; }
+    body.mode-dropdown .project-tabs { display: none; }
+
+    .dd-btn {
+      display: flex; align-items: center; gap: 8px;
+      height: 32px; padding: 0 10px; border-radius: 4px;
+      border: 1px solid var(--stroke); background: #fff;
+      font: inherit; cursor: pointer; min-width: 160px;
+    }
+    .dd-btn:hover { background: #f5f5f5; }
+    .dd-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dd-btn .caret { margin-left: auto; color: var(--text-2); font-size: 10px; }
+    .dd-menu {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0;
+      min-width: 240px; background: #fff; border: 1px solid var(--stroke);
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 50;
+      padding: 4px; max-height: 280px; overflow-y: auto;
+    }
+    .dd-menu.open { display: block; }
+    .dd-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 8px 10px; border: none; background: transparent;
+      font: inherit; text-align: left; border-radius: 6px; cursor: pointer;
+    }
+    .dd-item:hover { background: rgba(0,0,0,.04); }
+    .dd-item.on { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+    .dd-item .meta { margin-left: auto; font-size: 11px; color: var(--text-2); font-weight: 400; }
+    .dd-sep { height: 1px; background: var(--stroke); margin: 4px 0; }
+    .dd-item.add { color: var(--brand); }
+
+    .shell { display: flex; flex: 1; min-height: 0; }
+
+    .conv-rail {
+      display: none;
+      width: 240px; flex-shrink: 0;
+      border-right: 1px solid var(--stroke);
+      background: rgba(255,255,255,.35);
+      flex-direction: column;
+      min-height: 0;
+    }
+    body.mode-sidebar .conv-rail { display: flex; }
+    body.mode-sidebar .nav-filters { width: 180px; }
+    .conv-head {
+      padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .conv-head h2 { font-size: 13px; font-weight: 600; flex: 1; }
+    .conv-new {
+      border: none; background: var(--brand); color: #fff;
+      width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 16px;
+    }
+    .conv-search {
+      margin: 0 10px 8px; height: 30px; border-radius: 6px; border: 1px solid var(--stroke);
+      padding: 0 10px; font: inherit; font-size: 12px; width: calc(100% - 20px);
+      background: #fff;
+    }
+    .conv-list { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+    .conv-item {
+      width: 100%; text-align: left; border: none; background: transparent;
+      padding: 10px 10px; border-radius: 8px; cursor: pointer; font: inherit;
+      margin-bottom: 2px;
+    }
+    .conv-item:hover { background: rgba(0,0,0,.04); }
+    .conv-item.on { background: var(--brand-bg); }
+    .conv-item .row1 {
+      display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px;
+    }
+    .conv-item .row1 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .conv-item .row2 {
+      margin-top: 4px; font-size: 11px; color: var(--text-2);
+      padding-left: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .conv-item.on .row1 { color: var(--brand); }
+
+    .nav-filters {
+      width: 200px; flex-shrink: 0;
+      border-right: 1px solid var(--stroke);
+      padding: 8px 6px;
+      display: flex; flex-direction: column; gap: 2px;
+      background: rgba(255,255,255,.25);
+    }
+    .nav-section {
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      padding: 10px 12px 4px; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 4px; border: none;
+      background: transparent; font: inherit; color: var(--text);
+      cursor: pointer; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(0,0,0,.04); }
+    .nav-item.active { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+    .nav-item .badge {
+      margin-left: auto; font-size: 11px; min-width: 20px; text-align: center;
+      background: rgba(0,0,0,.06); border-radius: 10px; padding: 0 6px;
+    }
+    .stats {
+      margin: 12px 6px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .stat {
+      background: #fff; border: 1px solid var(--stroke);
+      border-radius: 6px; padding: 8px 10px;
+    }
+    .stat .n { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .stat .l { font-size: 11px; color: var(--text-2); }
+    .hint {
+      margin: auto 6px 8px; font-size: 11px; color: var(--text-2); line-height: 1.45;
+      padding: 10px; border-radius: 6px; border: 1px dashed var(--stroke);
+      background: rgba(255,255,255,.4);
+    }
+
+    .main {
+      flex: 1; display: block; min-width: 0; position: relative;
+      background: rgba(249,249,249,.55); overflow: hidden;
+    }
+    .board {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(240px, 1fr));
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .col {
+      border-right: 1px solid var(--stroke);
+      display: flex; flex-direction: column; min-width: 240px; height: 100%; min-height: 0;
+    }
+    .col-h {
+      padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+    }
+    .col-h b { color: var(--text); font-size: 13px; }
+    .col-h .count {
+      font-size: 11px; background: rgba(255,255,255,.8);
+      border: 1px solid var(--stroke); border-radius: 10px; padding: 0 7px;
+    }
+    .col-h-todo {
+      cursor: pointer; user-select: none; border-radius: 6px;
+      margin: 8px 8px 4px; padding: 8px 10px !important;
+      border: 1px dashed transparent; transition: .15s;
+    }
+    .col-h-todo:hover {
+      background: rgba(0,95,184,.08); border-color: rgba(0,95,184,.35); color: var(--brand);
+    }
+    .col-h-todo .col-h-default { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .col-h-todo .col-h-create { display: none; align-items: center; gap: 8px; width: 100%; color: var(--brand); font-weight: 600; }
+    .col-h-todo:hover .col-h-default { display: none; }
+    .col-h-todo:hover .col-h-create { display: flex; }
+    .col-h-todo .plus {
+      width: 20px; height: 20px; border-radius: 4px; background: var(--brand); color: #fff;
+      display: grid; place-items: center; font-size: 14px; font-weight: 700;
+    }
+    .col-b {
+      padding: 6px 10px 14px; overflow-y: auto; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .card {
+      text-align: left; font: inherit; color: inherit; cursor: pointer;
+      background: #fff; border: 1px solid var(--stroke); border-radius: 8px;
+      padding: 11px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .card.selected { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+    .card.blocked { border-left: 3px solid var(--danger); }
+    .card-top { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 11px; color: var(--text-2); }
+    .card-id { font-family: Consolas, monospace; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prio { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+    .p0 { background: #fde7e9; color: var(--danger); }
+    .p1 { background: #fff4ce; color: var(--warning); }
+    .p2 { background: #e8f3fc; color: var(--brand); }
+    .p3 { background: #f0f0f0; color: var(--text-2); }
+    .card-title { font-weight: 600; font-size: 13px; line-height: 1.35; margin-bottom: 8px; }
+    .card-meta { font-size: 11px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .progress { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; font-size: 11px; color: var(--text-2); }
+
+    .drawer {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 0; overflow: hidden;
+      transition: width .2s ease, box-shadow .2s; background: #fff; z-index: 20;
+      border-left: 1px solid transparent;
+    }
+    .drawer.open {
+      width: min(380px, 40vw); border-left-color: var(--stroke);
+      box-shadow: -8px 0 24px rgba(0,0,0,.1);
+    }
+    .drawer-inner { width: min(380px, 40vw); height: 100%; display: flex; flex-direction: column; min-height: 0; }
+    .drawer-h {
+      padding: 14px 48px 14px 16px; border-bottom: 1px solid var(--stroke); position: relative;
+    }
+    .drawer-h .sub { font-size: 11px; color: var(--text-2); word-break: break-all; }
+    .drawer-h h2 { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .btn-icon {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: 1px solid var(--stroke); border-radius: 4px; background: #f5f5f5;
+      cursor: pointer; font-size: 16px;
+    }
+    .drawer-b { flex: 1; overflow: auto; padding: 14px 16px; min-height: 0; }
+    .drawer-b h4 { font-size: 11px; color: var(--text-2); text-transform: uppercase; margin: 14px 0 6px; }
+    .drawer-b p, .drawer-b li { font-size: 13px; line-height: 1.5; }
+    .drawer-b ul { padding-left: 18px; }
+    .alert { background: #fde7e9; color: var(--danger); padding: 10px; border-radius: 4px; font-size: 12px; }
+    .chip {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 3px;
+      background: #f5f5f5; border: 1px solid var(--stroke); margin: 0 4px 4px 0;
+      font-family: Consolas, monospace;
+    }
+    .drawer-f {
+      padding: 12px; border-top: 1px solid var(--stroke); display: flex; flex-wrap: wrap; gap: 8px; background: #fafafa;
+    }
+    .btn-native {
+      height: 32px; padding: 0 14px; border-radius: 4px; border: 1px solid var(--stroke);
+      background: #fff; font: inherit; font-size: 12px; cursor: pointer;
+    }
+    .btn-native.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+    .btn-native:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-native.danger { color: var(--danger); border-color: #f0b4ae; }
+
+    .status-bar {
+      height: 28px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+      padding: 0 12px; font-size: 11px; color: var(--text-2);
+      border-top: 1px solid var(--stroke); background: rgba(255,255,255,.35);
+    }
+    .status-bar .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #0f7b0f;
+      box-shadow: 0 0 0 2px rgba(15,123,15,.2);
+    }
+    .status-bar .dot.err { background: var(--danger); box-shadow: 0 0 0 2px rgba(196,43,28,.2); }
+    .status-bar .dot.warn { background: #ca5010; box-shadow: 0 0 0 2px rgba(202,80,16,.2); }
+    .status-bar button.linkish {
+      border: none; background: transparent; color: var(--brand);
+      font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline;
+      padding: 0;
+    }
+
+    .cfg-strip {
+      display: none;
+      align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 12px; background: #fff8e8; border-bottom: 1px solid #f0d78c;
+      font-size: 12px; flex-shrink: 0;
+    }
+    .cfg-strip.open { display: flex; }
+    .cfg-strip label { color: var(--text-2); white-space: nowrap; }
+    .cfg-strip input {
+      height: 28px; border: 1px solid rgba(0,0,0,.14); border-radius: 4px;
+      padding: 0 8px; font: inherit; font-size: 12px; min-width: 160px;
+    }
+    .cfg-strip input#cfg-base { min-width: 220px; flex: 1; }
+    .cfg-strip input#cfg-token { min-width: 240px; flex: 1.2; font-family: Consolas, monospace; font-size: 11px; }
+    .cfg-strip .err-msg { color: var(--danger); width: 100%; font-size: 11px; }
+
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.28);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: min(420px, 92vw); background: #fff; border-radius: 8px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.22); border: 1px solid rgba(0,0,0,.08);
+    }
+    .modal-h { padding: 14px 16px; font-size: 15px; font-weight: 600; border-bottom: 1px solid var(--stroke); }
+    .modal-b { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-b label { font-size: 12px; color: var(--text-2); }
+    .modal-b input, .modal-b textarea, .modal-b select {
+      width: 100%; font: inherit; font-size: 13px; padding: 8px 10px;
+      border: 1px solid rgba(0,0,0,.14); border-radius: 4px;
+    }
+    .modal-b textarea { min-height: 72px; resize: vertical; }
+    .modal-f {
+      padding: 12px 16px; border-top: 1px solid var(--stroke);
+      display: flex; justify-content: flex-end; gap: 8px; background: #fafafa;
+    }
+    .desk-caption {
+      position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: rgba(255,255,255,.9); text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,.25); max-width: 96vw;
+    }
+    .toast {
+      position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,.9); color: #fff; padding: 8px 14px;
+      border-radius: 8px; font-size: 12px; z-index: 300; opacity: 0;
+      pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+    .loading-banner {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.65); color: #fff; font-size: 11px;
+      padding: 4px 10px; border-radius: 12px; z-index: 15;
+      display: none;
+    }
+    .loading-banner.show { display: block; }
+
+    /* LOCKED: 仅顶栏 Tabs 切换项目 */
+    .proto-bar { display: none !important; }
+    .project-tabs { display: flex !important; }
+    .dropdown-wrap { display: none !important; }
+    .conv-rail { display: none !important; }
+    .window { margin-top: 0 !important; }
+  </style>
+</head>
+<body class="mode-tabs">
+  <div class="window">
+    <div class="titlebar">
+      <div class="app-glyph"></div>
+      <div class="app-name">需求引擎</div>
+      <div class="caption">
+        <button type="button">─</button>
+        <button type="button">□</button>
+        <button type="button" class="win-close">✕</button>
+      </div>
+    </div>
+
+    <div class="cfg-strip" id="cfg-strip">
+      <strong>API 配置</strong>
+      <label for="cfg-base">Base</label>
+      <input id="cfg-base" type="text" placeholder="http://127.0.0.1:7420/v1" spellcheck="false" />
+      <label for="cfg-token">Token</label>
+      <input id="cfg-token" type="password" placeholder="从 tokens.txt 粘贴 admin= 后的值" spellcheck="false" />
+      <button type="button" class="btn-native primary" id="cfg-save">保存并连接</button>
+      <button type="button" class="btn-native" id="cfg-hide">收起</button>
+      <div class="err-msg" id="cfg-err"></div>
+    </div>
+
+    <div class="project-tabs" id="project-tabs"></div>
+
+    <div class="app-header">
+      <h1>看板</h1>
+
+      <div class="dropdown-wrap" id="dd-wrap">
+        <button type="button" class="dd-btn" id="dd-btn">
+          <span class="dot" id="dd-dot"></span>
+          <span id="dd-label">—</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="dd-menu" id="dd-menu"></div>
+      </div>
+
+      <fluent-text-field appearance="outline" placeholder="搜索当前项目…" id="search"></fluent-text-field>
+      <div class="spacer"></div>
+      <button type="button" class="btn-native" id="btn-settings" title="API 设置">设置</button>
+      <button type="button" class="btn-native" id="btn-refresh" title="立即刷新">刷新</button>
+    </div>
+
+    <div class="shell">
+      <aside class="conv-rail" id="conv-rail">
+        <div class="conv-head">
+          <h2>项目</h2>
+          <button type="button" class="conv-new" id="conv-new" title="新建项目">+</button>
+        </div>
+        <input class="conv-search" id="conv-search" placeholder="搜索项目…" />
+        <div class="conv-list" id="conv-list"></div>
+      </aside>
+
+      <nav class="nav-filters">
+        <div class="nav-section">筛选</div>
+        <button class="nav-item active" type="button" data-f="all">全部 <span class="badge" id="badge-all">0</span></button>
+        <button class="nav-item" type="button" data-f="p0">仅 P0 <span class="badge" id="badge-p0">0</span></button>
+        <button class="nav-item" type="button" data-f="blocked">阻塞 <span class="badge" id="badge-blocked">0</span></button>
+        <div class="nav-section">本项目统计</div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="st-todo">0</div><div class="l">需求</div></div>
+          <div class="stat"><div class="n" id="st-doing">0</div><div class="l">进行中</div></div>
+          <div class="stat"><div class="n" id="st-review">0</div><div class="l">审核</div></div>
+          <div class="stat"><div class="n" id="st-done">0</div><div class="l">完成</div></div>
+        </div>
+        <div class="hint" id="mode-hint">
+          连接 req-engine HTTP API（/v1）。Token 存 localStorage。
+        </div>
+      </nav>
+
+      <div class="main">
+        <div class="loading-banner" id="loading-banner">同步中…</div>
+        <div class="board" id="board"></div>
+        <aside class="drawer" id="drawer" aria-hidden="true">
+          <div class="drawer-inner">
+            <div class="drawer-h">
+              <div class="sub" id="d-id">REQ</div>
+              <h2 id="d-title">—</h2>
+              <button type="button" class="btn-icon" id="btn-close-x" title="关闭 (Esc)">✕</button>
+            </div>
+            <div class="drawer-b" id="d-body"></div>
+            <div class="drawer-f">
+              <button type="button" class="btn-native" id="btn-copy">复制 ID</button>
+              <button type="button" class="btn-native primary" id="btn-complete" disabled title="仅 review 状态可用">确认完成</button>
+              <button type="button" class="btn-native danger" id="btn-reject" disabled title="审核不通过 → todo">驳回</button>
+              <button type="button" class="btn-native" id="btn-close">关闭</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span class="dot" id="conn-dot"></span>
+      <span id="conn-label">未连接</span>
+      <span id="status-project">项目：—</span>
+      <span style="margin-left:auto" id="status-mode">API · 3s 轮询</span>
+      <button type="button" class="linkish" id="status-cfg">配置</button>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="new-modal">
+    <div class="modal">
+      <div class="modal-h">新建需求 · <span id="new-modal-proj"></span></div>
+      <div class="modal-b">
+        <div>
+          <label for="new-title">标题</label>
+          <input id="new-title" type="text" placeholder="一句话说清要做什么" />
+        </div>
+        <div>
+          <label for="new-desc">描述（可选）</label>
+          <textarea id="new-desc" placeholder="补充背景、验收要点…"></textarea>
+        </div>
+        <div>
+          <label for="new-prio">优先级</label>
+          <select id="new-prio">
+            <option value="P0">P0 / high</option>
+            <option value="P1" selected>P1</option>
+            <option value="P2">P2 / medium</option>
+            <option value="P3">P3 / low</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn-native" id="new-cancel">取消</button>
+        <button type="button" class="btn-native primary" id="new-submit">创建到待办</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <p class="desk-caption">需求引擎 · Fluent 看板 · 实时 API</p>
+
+  <script>
+    /* ========== Config / API ========== */
+    const LS_BASE = "req_engine_base";
+    const LS_TOKEN = "req_engine_token";
+    const DEFAULT_BASE = "http://127.0.0.1:7420/v1";
+    const POLL_MS = 3000;
+
+    let apiBase = (localStorage.getItem(LS_BASE) || DEFAULT_BASE).replace(/\/+$/, "");
+    let apiToken = localStorage.getItem(LS_TOKEN) || "";
+
+    const COLORS = ["#0078d4", "#8764b8", "#0e7a0d", "#c239b3", "#ca5010", "#038387"];
+    const COLS = [
+      { title: "需求", statuses: ["todo"] },
+      { title: "进行中", statuses: ["in_progress", "blocked", "scheduled"] },
+      { title: "审核中", statuses: ["review"] },
+      { title: "已完成", statuses: ["done"] },
+    ];
+
+    /** @type {{id:string,name:string,color:string,blurb:string,tasks:any[]}[]} */
+    let PROJECTS = [];
+    let projectId = null;
+    let filter = "all";
+    let q = "";
+    let selected = null;
+    let convQ = "";
+    let pollTimer = null;
+    let loading = false;
+    let connOk = false;
+    let lastError = "";
+
+    const esc = (s) =>
+      String(s ?? "").replace(/[&<>"]/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+      );
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function setLoading(on) {
+      loading = on;
+      document.getElementById("loading-banner").classList.toggle("show", on);
+    }
+
+    function setConn(ok, label) {
+      connOk = ok;
+      const dot = document.getElementById("conn-dot");
+      const lab = document.getElementById("conn-label");
+      dot.classList.toggle("err", !ok);
+      dot.classList.toggle("warn", !ok && !apiToken);
+      lab.textContent = label || (ok ? "API 已连接" : "未连接");
+    }
+
+    function asArray(v) {
+      if (Array.isArray(v)) return v;
+      if (v == null) return [];
+      if (typeof v === "string") {
+        try {
+          const p = JSON.parse(v);
+          return Array.isArray(p) ? p : [];
+        } catch {
+          return v ? [v] : [];
+        }
+      }
+      return [];
+    }
+
+    /** Map API priority (high/medium/low or P0–P3) → UI P0–P3 */
+    function normalizePriority(p) {
+      const s = String(p || "medium").trim().toLowerCase();
+      if (s === "p0" || s === "critical" || s === "high" || s === "urgent") return "P0";
+      if (s === "p1") return "P1";
+      if (s === "p2" || s === "medium" || s === "normal") return "P2";
+      if (s === "p3" || s === "low") return "P3";
+      if (/^p[0-3]$/.test(s)) return s.toUpperCase();
+      return "P2";
+    }
+
+    /** UI P0–P3 → API-friendly priority string */
+    function priorityToApi(p) {
+      const n = normalizePriority(p);
+      if (n === "P0") return "high";
+      if (n === "P1") return "P1";
+      if (n === "P2") return "medium";
+      if (n === "P3") return "low";
+      return "medium";
+    }
+
+    function formatRelative(iso) {
+      if (!iso) return "—";
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return String(iso);
+      const sec = Math.round((Date.now() - t) / 1000);
+      if (sec < 45) return "刚刚";
+      if (sec < 3600) return Math.floor(sec / 60) + " 分钟前";
+      if (sec < 86400) return Math.floor(sec / 3600) + " 小时前";
+      if (sec < 86400 * 7) return Math.floor(sec / 86400) + " 天前";
+      return new Date(iso).toLocaleString();
+    }
+
+    function formatEventTime(iso) {
+      if (!iso) return "—";
+      try {
+        return new Date(iso).toLocaleString();
+      } catch {
+        return String(iso);
+      }
+    }
+
+    /**
+     * Board column status:
+     * - API has no "blocked"/"scheduled"; blocked_reason on in_progress → UI "blocked"
+     * - cancelled hidden from board
+     */
+    function mapRequirement(r) {
+      const apiStatus = r.status;
+      let boardStatus = apiStatus;
+      if (apiStatus === "in_progress" && r.blocked_reason) boardStatus = "blocked";
+      return {
+        id: r.id,
+        title: r.title,
+        description: r.description || "",
+        priority: normalizePriority(r.priority),
+        status: boardStatus,
+        apiStatus,
+        scope: asArray(r.scope),
+        deps: asArray(r.dependencies),
+        ac: asArray(r.acceptance_criteria),
+        progress: r.progress_summary || "",
+        blocked_reason: r.blocked_reason || null,
+        claimed_by: r.claimed_by || null,
+        external: r.external_run_id || null,
+        updated: formatRelative(r.updated_at),
+        updated_at: r.updated_at,
+        created_by: r.created_by || "",
+        timeline: [],
+      };
+    }
+
+    function mapEvents(events) {
+      return (events || []).map((e) => ({
+        t: formatEventTime(e.created_at),
+        actor: e.actor || "—",
+        text: e.message || e.kind || "",
+      }));
+    }
+
+    async function api(path, opts = {}) {
+      const base = apiBase.replace(/\/+$/, "");
+      const url = path.startsWith("http") ? path : base + path;
+      const headers = Object.assign(
+        { Accept: "application/json" },
+        opts.headers || {}
+      );
+      if (apiToken) headers["Authorization"] = "Bearer " + apiToken;
+      if (opts.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+      let res;
+      try {
+        res = await fetch(url, {
+          method: opts.method || "GET",
+          headers,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+      } catch (e) {
+        const err = new Error("无法连接 API（" + (e.message || "network") + "）。请确认 serve 已启动且 CORS 允许当前 Origin。");
+        err.network = true;
+        throw err;
+      }
+      if (res.status === 204) return null;
+      const text = await res.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      }
+      if (!res.ok) {
+        const msg =
+          (data && (data.message || data.error || data.detail)) ||
+          res.status + " " + res.statusText;
+        const err = new Error(msg);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function project() {
+      return PROJECTS.find((p) => p.id === projectId) || PROJECTS[0] || { id: "", name: "—", color: "#888", blurb: "", tasks: [] };
+    }
+    function tasks() {
+      return project().tasks || [];
+    }
+
+    function countOf(list, pred) {
+      return list.filter(pred).length;
+    }
+
+    /* ========== Config UI ========== */
+    function showConfig(open) {
+      const strip = document.getElementById("cfg-strip");
+      strip.classList.toggle("open", open !== false);
+      if (open !== false) {
+        document.getElementById("cfg-base").value = apiBase;
+        document.getElementById("cfg-token").value = apiToken;
+        document.getElementById("cfg-err").textContent = lastError || "";
+      }
+    }
+
+    function saveConfig() {
+      const base = document.getElementById("cfg-base").value.trim().replace(/\/+$/, "") || DEFAULT_BASE;
+      const token = document.getElementById("cfg-token").value.trim();
+      apiBase = base;
+      apiToken = token;
+      localStorage.setItem(LS_BASE, apiBase);
+      if (token) localStorage.setItem(LS_TOKEN, token);
+      else localStorage.removeItem(LS_TOKEN);
+      document.getElementById("cfg-err").textContent = "";
+      toast("已保存配置");
+      boot(true);
+    }
+
+    /* ========== Data load ========== */
+    async function loadProjects() {
+      const list = await api("/projects");
+      const prev = new Map(PROJECTS.map((p) => [p.id, p.tasks]));
+      PROJECTS = (list || []).map((p, i) => ({
+        id: p.id,
+        name: p.name,
+        color: p.color || COLORS[i % COLORS.length],
+        blurb: p.blurb || "",
+        tasks: prev.get(p.id) || [],
+      }));
+      if (!projectId || !PROJECTS.some((p) => p.id === projectId)) {
+        projectId = PROJECTS[0]?.id || null;
+      }
+    }
+
+    async function loadRequirements(pid, { silent } = {}) {
+      if (!pid) return;
+      if (!silent) setLoading(true);
+      try {
+        const list = await api("/projects/" + encodeURIComponent(pid) + "/requirements");
+        const mapped = (list || [])
+          .map(mapRequirement)
+          .filter((t) => t.apiStatus !== "cancelled");
+        const p = PROJECTS.find((x) => x.id === pid);
+        if (p) p.tasks = mapped;
+        // Preserve timeline cache for open drawer if same ids
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    }
+
+    async function refreshAll({ silent } = {}) {
+      if (!apiToken) {
+        setConn(false, "需要 Token");
+        return;
+      }
+      try {
+        // health is optional / no auth
+        try {
+          await api("/health");
+        } catch {
+          /* health failure still try projects */
+        }
+        await loadProjects();
+        if (projectId) await loadRequirements(projectId, { silent: true });
+        setConn(true, "API 已连接");
+        lastError = "";
+        renderChrome();
+        render();
+        if (selected) {
+          // refresh drawer fields without losing open state
+          const t = tasks().find((x) => x.id === selected);
+          if (t) fillDrawer(t, { keepTimeline: true });
+          else closeDrawer();
+        }
+      } catch (e) {
+        lastError = e.message || String(e);
+        setConn(false, e.status === 401 || e.status === 403 ? "鉴权失败" : "连接失败");
+        if (!silent) {
+          document.getElementById("cfg-err").textContent = lastError;
+          if (e.status === 401 || e.status === 403 || !apiToken) showConfig(true);
+          toast(lastError);
+        }
+        renderChrome();
+        render();
+      }
+    }
+
+    async function boot(fromSave) {
+      if (!apiToken) {
+        setConn(false, "需要 Token");
+        showConfig(true);
+        PROJECTS = [];
+        renderChrome();
+        render();
+        if (!fromSave) {
+          document.getElementById("cfg-err").textContent =
+            "请粘贴 admin token（req-engine data/tokens.txt 中 admin= 后面的值）";
+        }
+        return;
+      }
+      showConfig(false);
+      await refreshAll({ silent: false });
+      startPoll();
+    }
+
+    function startPoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => {
+        if (document.hidden) return;
+        if (!apiToken) return;
+        refreshAll({ silent: true });
+      }, POLL_MS);
+    }
+
+    /* ========== Chrome / board ========== */
+    function selectProject(id) {
+      if (!PROJECTS.some((p) => p.id === id)) return;
+      projectId = id;
+      selected = null;
+      closeDrawer();
+      closeDropdown();
+      renderChrome();
+      render();
+      loadRequirements(id).then(() => {
+        renderChrome();
+        render();
+      }).catch((e) => toast(e.message || String(e)));
+    }
+
+    function renderChrome() {
+      const p = project();
+      document.getElementById("status-project").textContent = "项目：" + (p.name || "—");
+      document.getElementById("dd-label").textContent = p.name || "—";
+      document.getElementById("dd-dot").style.background = p.color || "#888";
+      document.getElementById("new-modal-proj").textContent = p.name || "—";
+
+      const tabs = document.getElementById("project-tabs");
+      if (!PROJECTS.length) {
+        tabs.innerHTML = `<span style="padding:8px 12px;color:var(--text-2);font-size:12px">无项目 — 检查 API / Token，或运行 init --seed</span>
+          <button type="button" class="ptab-add" id="tab-add" title="新建项目">+</button>`;
+      } else {
+        tabs.innerHTML =
+          PROJECTS.map(
+            (x) => `
+          <button type="button" class="ptab ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}">
+            <span class="dot" style="background:${esc(x.color)}"></span>
+            <span class="name">${esc(x.name)}</span>
+          </button>`
+          ).join("") +
+          `<button type="button" class="ptab-add" id="tab-add" title="新建项目">+</button>`;
+      }
+      tabs.querySelectorAll(".ptab[data-id]").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      document.getElementById("tab-add")?.addEventListener("click", addProject);
+
+      const menu = document.getElementById("dd-menu");
+      menu.innerHTML =
+        PROJECTS.map(
+          (x) => `
+        <button type="button" class="dd-item ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}">
+          <span class="dot" style="width:8px;height:8px;border-radius:50%;background:${esc(x.color)}"></span>
+          <span>${esc(x.name)}</span>
+          <span class="meta">${(x.tasks || []).length} 项</span>
+        </button>`
+        ).join("") +
+        `<div class="dd-sep"></div>
+         <button type="button" class="dd-item add" id="dd-add">＋ 新建项目</button>`;
+      menu.querySelectorAll(".dd-item[data-id]").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      document.getElementById("dd-add")?.addEventListener("click", addProject);
+
+      const list = document.getElementById("conv-list");
+      const cq = convQ.trim().toLowerCase();
+      const items = PROJECTS.filter(
+        (x) =>
+          !cq ||
+          x.name.toLowerCase().includes(cq) ||
+          (x.blurb || "").toLowerCase().includes(cq)
+      );
+      list.innerHTML = items
+        .map((x) => {
+          const active = (x.tasks || []).filter(
+            (t) => t.status === "in_progress" || t.status === "blocked"
+          ).length;
+          return `
+          <button type="button" class="conv-item ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}">
+            <div class="row1"><span class="dot" style="background:${esc(x.color)}"></span>${esc(x.name)}</div>
+            <div class="row2">${esc(x.blurb)} · ${active ? active + " 进行中" : (x.tasks || []).length + " 任务"}</div>
+          </button>`;
+        })
+        .join("");
+      list.querySelectorAll(".conv-item").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+    }
+
+    async function addProject() {
+      const name = prompt("新项目名称", "new-project");
+      if (!name || !name.trim()) return;
+      try {
+        const body = {
+          name: name.trim(),
+          color: COLORS[PROJECTS.length % COLORS.length],
+          blurb: "新建项目",
+        };
+        const created = await api("/projects", { method: "POST", body });
+        await loadProjects();
+        // ensure new project in list even if race
+        if (created && !PROJECTS.some((p) => p.id === created.id)) {
+          PROJECTS.push({
+            id: created.id,
+            name: created.name,
+            color: created.color,
+            blurb: created.blurb || "",
+            tasks: [],
+          });
+        }
+        selectProject(created.id);
+        toast("项目已创建");
+      } catch (e) {
+        toast("创建项目失败: " + (e.message || e));
+      }
+    }
+
+    function ok(t) {
+      if (filter === "p0" && t.priority !== "P0") return false;
+      if (filter === "blocked" && t.status !== "blocked") return false;
+      if (q && !(t.id + t.title).toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    }
+
+    function updateStats(list) {
+      const all = list.length;
+      const p0 = countOf(list, (t) => t.priority === "P0");
+      const blocked = countOf(list, (t) => t.status === "blocked");
+      document.getElementById("badge-all").textContent = all;
+      document.getElementById("badge-p0").textContent = p0;
+      document.getElementById("badge-blocked").textContent = blocked;
+      document.getElementById("st-todo").textContent = countOf(list, (t) => t.status === "todo");
+      document.getElementById("st-doing").textContent = countOf(list, (t) =>
+        ["in_progress", "blocked", "scheduled"].includes(t.status)
+      );
+      document.getElementById("st-review").textContent = countOf(list, (t) => t.status === "review");
+      document.getElementById("st-done").textContent = countOf(list, (t) => t.status === "done");
+    }
+
+    function closeDrawer() {
+      selected = null;
+      const d = document.getElementById("drawer");
+      d.classList.remove("open");
+      d.setAttribute("aria-hidden", "true");
+      document.getElementById("btn-complete").disabled = true;
+      document.getElementById("btn-reject").disabled = true;
+      render();
+    }
+
+    function fillDrawer(t, { keepTimeline } = {}) {
+      document.getElementById("d-id").textContent =
+        t.id + " · " + t.priority + " · " + t.apiStatus + (t.status === "blocked" ? " (blocked)" : "");
+      document.getElementById("d-title").textContent = t.title;
+      const timeline = keepTimeline && t.timeline?.length
+        ? t.timeline
+        : t.timeline || [];
+      document.getElementById("d-body").innerHTML = `
+        ${t.blocked_reason ? `<div class="alert">${esc(t.blocked_reason)}</div>` : ""}
+        <h4>项目</h4><p>${esc(project().name)}</p>
+        <h4>描述</h4><p>${esc(t.description) || "—"}</p>
+        <h4>验收标准</h4><ul>${(t.ac || []).map((a) => `<li>${esc(typeof a === "string" ? a : JSON.stringify(a))}</li>`).join("") || "<li>—</li>"}</ul>
+        <h4>Scope</h4><div>${(t.scope || []).map((s) => `<span class="chip">${esc(typeof s === "string" ? s : JSON.stringify(s))}</span>`).join("") || "—"}</div>
+        <h4>依赖</h4><div>${(t.deps || []).map((s) => `<span class="chip">${esc(typeof s === "string" ? s : JSON.stringify(s))}</span>`).join("") || "—"}</div>
+        <h4>执行上报</h4>
+        <p style="color:var(--text-2);font-size:12px">${t.progress ? esc(t.progress) : "无 — 引擎不探测 Worker / IDLE"}</p>
+        ${t.claimed_by ? `<p style="font-size:12px;margin-top:6px">claimed_by: <code>${esc(t.claimed_by)}</code></p>` : ""}
+        ${t.created_by ? `<p style="font-size:12px;margin-top:4px">created_by: <code>${esc(t.created_by)}</code></p>` : ""}
+        ${t.external ? `<p style="font-size:12px;margin-top:4px">external_run_id: <code>${esc(t.external)}</code></p>` : ""}
+        <h4>时间线</h4>
+        <ul id="d-timeline">${timeline.length
+          ? timeline.map((e) => `<li>${esc(e.t)} · ${esc(e.actor)} — ${esc(e.text)}</li>`).join("")
+          : "<li style='color:var(--text-2)'>加载中…</li>"}</ul>`;
+      const inReview = t.apiStatus === "review";
+      document.getElementById("btn-complete").disabled = !inReview;
+      document.getElementById("btn-reject").disabled = !inReview;
+    }
+
+    async function openDrawer(id) {
+      if (selected === id) {
+        closeDrawer();
+        return;
+      }
+      selected = id;
+      const t = tasks().find((x) => x.id === id);
+      if (!t) return;
+      document.getElementById("drawer").classList.add("open");
+      document.getElementById("drawer").setAttribute("aria-hidden", "false");
+      fillDrawer(t);
+      render();
+      // Load detail + events
+      try {
+        const detail = await api("/requirements/" + encodeURIComponent(id));
+        if (selected !== id) return;
+        const mapped = mapRequirement(detail);
+        mapped.timeline = mapEvents(detail.events);
+        // merge into cache
+        const list = tasks();
+        const idx = list.findIndex((x) => x.id === id);
+        if (idx >= 0) list[idx] = Object.assign(list[idx], mapped, { timeline: mapped.timeline });
+        fillDrawer(list[idx] || mapped);
+      } catch (e) {
+        const ul = document.getElementById("d-timeline");
+        if (ul) ul.innerHTML = `<li style="color:var(--danger)">时间线加载失败: ${esc(e.message)}</li>`;
+      }
+    }
+
+    function render() {
+      const list = tasks();
+      updateStats(list);
+      const visible = list.filter(ok);
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      COLS.forEach((col) => {
+        const items = visible.filter((t) => col.statuses.includes(t.status));
+        const sec = document.createElement("section");
+        sec.className = "col";
+        const isTodo = col.title === "需求";
+        const head = isTodo
+          ? `<button type="button" class="col-h col-h-todo" id="col-new-req" title="新建需求">
+              <span class="col-h-default"><b>${col.title}</b><span class="count">${items.length}</span></span>
+              <span class="col-h-create"><span class="plus">+</span><span>新建需求</span></span>
+            </button>`
+          : `<div class="col-h"><b>${col.title}</b><span class="count">${items.length}</span></div>`;
+        sec.innerHTML = `${head}<div class="col-b"></div>`;
+        const body = sec.querySelector(".col-b");
+        if (!items.length) {
+          body.innerHTML = `<div style="color:var(--text-2);font-size:12px;padding:16px 8px;text-align:center">暂无任务</div>`;
+        }
+        items.forEach((t) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className =
+            "card" +
+            (t.status === "blocked" ? " blocked" : "") +
+            (selected === t.id ? " selected" : "");
+          const shortId = t.id.length > 14 ? t.id.slice(0, 8) + "…" : t.id;
+          b.innerHTML = `
+            <div class="card-top"><span class="card-id" title="${esc(t.id)}">${esc(shortId)}</span>
+            <span class="prio ${t.priority.toLowerCase()}">${t.priority}</span>
+            ${t.status === "blocked" ? '<span class="prio p0">阻塞</span>' : ""}</div>
+            <div class="card-title">${esc(t.title)}</div>
+            <div class="card-meta">
+              ${t.scope?.[0] ? `<span>${esc(typeof t.scope[0] === "string" ? t.scope[0] : JSON.stringify(t.scope[0]))}</span>` : ""}
+              ${t.deps?.length ? `<span>依赖 ${t.deps.length}</span>` : ""}
+              <span>${esc(t.updated)}</span>
+            </div>
+            ${t.progress ? `<div class="progress">${esc(t.progress)}</div>` : ""}
+            ${t.blocked_reason ? `<div class="progress" style="color:var(--danger)">${esc(t.blocked_reason)}</div>` : ""}`;
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openDrawer(t.id);
+          });
+          body.appendChild(b);
+        });
+        board.appendChild(sec);
+      });
+      const head = document.getElementById("col-new-req");
+      if (head) {
+        head.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openNewModal();
+        });
+      }
+    }
+
+    function openNewModal() {
+      if (!projectId) {
+        toast("请先选择项目");
+        return;
+      }
+      if (!apiToken) {
+        showConfig(true);
+        toast("请先配置 Token");
+        return;
+      }
+      document.getElementById("new-modal").classList.add("open");
+      document.getElementById("new-title").value = "";
+      document.getElementById("new-desc").value = "";
+      document.getElementById("new-prio").value = "P1";
+      document.getElementById("new-modal-proj").textContent = project().name;
+      setTimeout(() => document.getElementById("new-title").focus(), 30);
+    }
+    function closeNewModal() {
+      document.getElementById("new-modal").classList.remove("open");
+    }
+
+    async function submitNew() {
+      const title = document.getElementById("new-title").value.trim();
+      if (!title) {
+        document.getElementById("new-title").focus();
+        return;
+      }
+      const desc = document.getElementById("new-desc").value.trim();
+      const uiPrio = document.getElementById("new-prio").value;
+      const btn = document.getElementById("new-submit");
+      btn.disabled = true;
+      try {
+        const created = await api(
+          "/projects/" + encodeURIComponent(projectId) + "/requirements",
+          {
+            method: "POST",
+            body: {
+              title,
+              description: desc || "",
+              priority: priorityToApi(uiPrio),
+            },
+          }
+        );
+        closeNewModal();
+        await loadRequirements(projectId);
+        renderChrome();
+        render();
+        if (created?.id) openDrawer(created.id);
+        toast("已创建到待办");
+      } catch (e) {
+        toast("创建失败: " + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function completeReview(pass) {
+      if (!selected) return;
+      const t = tasks().find((x) => x.id === selected);
+      if (!t || t.apiStatus !== "review") {
+        toast("仅审核中（review）的需求可确认完成");
+        return;
+      }
+      let reason = null;
+      if (!pass) {
+        reason = prompt("驳回原因（可选）", "") || null;
+      }
+      try {
+        await api("/requirements/" + encodeURIComponent(selected) + "/complete-review", {
+          method: "POST",
+          body: { pass: !!pass, reason },
+        });
+        toast(pass ? "已确认完成 → done" : "已驳回 → todo");
+        await loadRequirements(projectId);
+        renderChrome();
+        render();
+        // re-open drawer on updated card
+        const id = selected;
+        if (id && tasks().some((x) => x.id === id)) {
+          selected = null;
+          openDrawer(id);
+        } else {
+          closeDrawer();
+        }
+      } catch (e) {
+        toast("操作失败: " + (e.message || e));
+      }
+    }
+
+    function closeDropdown() {
+      document.getElementById("dd-menu").classList.remove("open");
+    }
+
+    /* ========== Events ========== */
+    document.getElementById("cfg-save").addEventListener("click", saveConfig);
+    document.getElementById("cfg-hide").addEventListener("click", () => showConfig(false));
+    document.getElementById("btn-settings").addEventListener("click", () => showConfig(true));
+    document.getElementById("status-cfg").addEventListener("click", () => showConfig(true));
+    document.getElementById("btn-refresh").addEventListener("click", () => {
+      refreshAll({ silent: false }).then(() => toast("已刷新"));
+    });
+    document.getElementById("cfg-token").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveConfig();
+    });
+
+    document.getElementById("dd-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("dd-menu").classList.toggle("open");
+    });
+    document.addEventListener("click", () => closeDropdown());
+    document.getElementById("dd-menu").addEventListener("click", (e) => e.stopPropagation());
+
+    document.getElementById("conv-search").addEventListener("input", (e) => {
+      convQ = e.target.value;
+      renderChrome();
+    });
+    document.getElementById("conv-new").addEventListener("click", addProject);
+
+    document.getElementById("board").addEventListener("click", (e) => {
+      if (!e.target.closest(".card") && selected) closeDrawer();
+    });
+    document.getElementById("btn-close").addEventListener("click", closeDrawer);
+    document.getElementById("btn-close-x").addEventListener("click", closeDrawer);
+    document.getElementById("btn-copy").addEventListener("click", () => {
+      if (selected) {
+        navigator.clipboard?.writeText(selected);
+        toast("已复制 ID");
+      }
+    });
+    document.getElementById("btn-complete").addEventListener("click", () => completeReview(true));
+    document.getElementById("btn-reject").addEventListener("click", () => completeReview(false));
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.getElementById("new-modal").classList.contains("open")) closeNewModal();
+        else if (selected) closeDrawer();
+        closeDropdown();
+      }
+    });
+
+    document.querySelectorAll(".nav-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".nav-item").forEach((x) => x.classList.remove("active"));
+        el.classList.add("active");
+        filter = el.dataset.f;
+        render();
+      });
+    });
+
+    setInterval(() => {
+      const el = document.getElementById("search");
+      const v = el?.value ?? el?.currentValue ?? "";
+      if (v !== q) {
+        q = v;
+        render();
+      }
+    }, 250);
+
+    document.getElementById("new-cancel").addEventListener("click", closeNewModal);
+    document.getElementById("new-submit").addEventListener("click", submitNew);
+    document.getElementById("new-modal").addEventListener("click", (e) => {
+      if (e.target.id === "new-modal") closeNewModal();
+    });
+    document.getElementById("new-title").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submitNew();
+      }
+    });
+
+    // Init config fields + boot
+    document.getElementById("cfg-base").value = apiBase;
+    document.getElementById("cfg-token").value = apiToken;
+    document.body.classList.add("mode-tabs");
+    boot(false);
+  </script>
+</body>
+</html>

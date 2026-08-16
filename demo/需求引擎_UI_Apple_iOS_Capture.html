@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>需求引擎 · iOS</title>
+  <style>
+    :root {
+      --bg: #f2f2f7; --card: #fff; --label: #000;
+      --secondary: rgba(60,60,67,.6); --tertiary: rgba(60,60,67,.3);
+      --sep: rgba(60,60,67,.29); --blue: #007aff; --green: #34c759;
+      --red: #ff3b30; --orange: #ff9500; --gray5: #e5e5ea;
+      --safe-bot: 34px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000; min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 16px 10px 24px; -webkit-font-smoothing: antialiased;
+    }
+    .proto {
+      width: min(393px, 100%); background: rgba(40,40,40,.95); color: #fff;
+      border-radius: 12px; padding: 8px; margin-bottom: 10px; font-size: 11px;
+    }
+    .proto strong { display: block; margin-bottom: 6px; opacity: .85; }
+    .proto .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .proto button {
+      flex: 1; min-width: 90px; border: 1px solid rgba(255,255,255,.2); background: transparent;
+      color: #fff; border-radius: 8px; padding: 7px 6px; font: inherit; cursor: pointer;
+    }
+    .proto button.on { background: #fff; color: #111; font-weight: 600; border-color: #fff; }
+
+    .device {
+      width: 393px; max-width: 100%; height: 820px; background: var(--bg);
+      border-radius: 47px; overflow: hidden; position: relative;
+      box-shadow: 0 0 0 11px #1a1a1a, 0 0 0 13px #2a2a2a, 0 25px 80px rgba(0,0,0,.5);
+      display: flex; flex-direction: column;
+    }
+    .island {
+      position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+      width: 126px; height: 37px; background: #000; border-radius: 24px; z-index: 30;
+    }
+    .status-bar {
+      height: 54px; padding: 12px 28px 0; display: flex; justify-content: space-between;
+      font-size: 15px; font-weight: 600; flex-shrink: 0;
+    }
+    .nav {
+      height: 44px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4px; border-bottom: 0.5px solid var(--sep);
+      background: rgba(242,242,247,.9); backdrop-filter: blur(20px); flex-shrink: 0;
+    }
+    .nav button, .nav a {
+      border: none; background: none; color: var(--blue); font: inherit; font-size: 17px;
+      padding: 8px 12px; cursor: pointer; text-decoration: none;
+    }
+    .nav .title { font-size: 17px; font-weight: 600; color: var(--label); max-width: 160px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* 方案1：横向项目 chips */
+    body[data-mode="tabs"] .project-strip { display: flex; }
+    .project-strip {
+      display: none; gap: 8px; padding: 8px 12px; overflow-x: auto;
+      background: var(--bg); flex-shrink: 0; -webkit-overflow-scrolling: touch;
+    }
+    .chip-p {
+      flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+      padding: 7px 12px; border-radius: 18px; border: none;
+      background: var(--gray5); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .chip-p.on { background: var(--blue); color: #fff; }
+    .chip-p .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .9; }
+    .chip-p.on .dot { background: #fff; }
+    .chip-add { background: transparent; border: 1px dashed var(--sep) !important; color: var(--blue); }
+
+    .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+    .large-title { padding: 4px 16px 8px; }
+    .large-title h1 { font-size: 34px; font-weight: 700; letter-spacing: .37px; }
+    .large-title p { font-size: 13px; color: var(--secondary); margin-top: 2px; }
+
+    .section { margin: 0 16px 16px; }
+    .section-header {
+      font-size: 13px; color: var(--secondary); text-transform: uppercase;
+      padding: 0 16px 7px; font-weight: 400;
+    }
+    .section-footer { font-size: 13px; color: var(--secondary); padding: 8px 16px 0; line-height: 1.35; }
+    .group { background: var(--card); border-radius: 10px; overflow: hidden; }
+    .cell {
+      display: flex; align-items: center; width: 100%; padding: 12px 16px; gap: 12px;
+      border: none; background: var(--card); text-align: left; font: inherit; color: var(--label);
+      cursor: pointer; position: relative;
+    }
+    .cell + .cell::before {
+      content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 0.5px; background: var(--sep);
+    }
+    .cell:active { background: var(--gray5); }
+    .cell.input-cell { flex-direction: column; align-items: stretch; gap: 8px; }
+    .cell.input-cell:active { background: var(--card); }
+    .cell-label { font-size: 13px; color: var(--secondary); }
+    .cell textarea {
+      border: none; resize: none; font: inherit; font-size: 17px; min-height: 80px;
+      outline: none; width: 100%; background: transparent;
+    }
+    .toolbar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ui-seg { display: inline-flex; background: var(--gray5); border-radius: 8px; padding: 2px; }
+    .ui-seg button {
+      border: none; background: transparent; padding: 5px 10px; border-radius: 6px;
+      font: inherit; font-size: 13px; cursor: pointer;
+    }
+    .ui-seg button.on { background: #fff; font-weight: 600; box-shadow: 0 0.5px 1px rgba(0,0,0,.12); }
+    .btn-filled {
+      margin-left: auto; background: var(--blue); color: #fff; border: none;
+      border-radius: 16px; padding: 7px 14px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+    .status-dot.todo { background: #c7c7cc; }
+    .status-dot.blocked { background: var(--red); }
+    .cell-title { flex: 1; min-width: 0; }
+    .cell-title .primary {
+      font-size: 17px; letter-spacing: -.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cell-title .secondary {
+      font-size: 14px; color: var(--secondary); margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .badge { font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+    .p0 { background: rgba(255,59,48,.12); color: var(--red); }
+    .p1 { background: rgba(255,149,0,.15); color: #c77700; }
+    .p2 { background: rgba(0,122,255,.12); color: var(--blue); }
+    .p3 { background: rgba(0,0,0,.06); color: var(--secondary); }
+    .disclosure { color: var(--tertiary); font-size: 16px; }
+
+    /* 进度页分段 */
+    .seg-pad { padding: 8px 16px; }
+    .segmented {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px;
+      background: rgba(118,118,128,.12); border-radius: 9px; padding: 2px; height: 32px;
+    }
+    .segmented button {
+      border: none; background: transparent; border-radius: 7px;
+      font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .segmented button.on { background: #fff; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    .page { display: none; }
+    .page.on { display: block; }
+
+    .tabbar {
+      border-top: 0.5px solid var(--sep); background: rgba(249,249,249,.94);
+      backdrop-filter: blur(20px); display: flex; padding: 4px 0 calc(4px + var(--safe-bot));
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1; border: none; background: none; cursor: pointer; font: inherit;
+      color: var(--secondary); display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding-top: 2px; font-size: 10px;
+    }
+    .tab.on { color: var(--blue); font-weight: 600; }
+    .tab svg { width: 24px; height: 24px; }
+
+    /* 方案2/3 项目选择：全屏 sheet / 列表页 */
+    .dim {
+      position: absolute; inset: 0; background: rgba(0,0,0,.4);
+      display: none; z-index: 40; align-items: flex-end;
+    }
+    .dim.open { display: flex; }
+    .sheet {
+      width: 100%; max-height: 85%; background: var(--bg); border-radius: 12px 12px 0 0;
+      overflow: auto; padding-bottom: var(--safe-bot);
+    }
+    .handle { width: 36px; height: 5px; background: rgba(0,0,0,.15); border-radius: 3px; margin: 6px auto 8px; }
+    .sheet-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 4px 10px; border-bottom: 0.5px solid var(--sep);
+    }
+    .sheet-nav button { border: none; background: none; color: var(--blue); font: inherit; font-size: 17px; padding: 8px 12px; cursor: pointer; }
+    .sheet-nav .t { font-size: 17px; font-weight: 600; }
+    .sheet-body { padding: 12px 16px 20px; }
+    .sheet-body h2 { font-size: 22px; font-weight: 700; margin: 4px 0 8px; }
+    .sheet-body p { font-size: 16px; color: var(--secondary); line-height: 1.4; }
+    .sheet-body h4 { font-size: 13px; color: var(--secondary); margin: 14px 0 6px; text-transform: uppercase; font-weight: 400; }
+    .sheet-body li { margin: 0 0 6px 18px; font-size: 16px; }
+
+    .proj-row {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 14px 4px; border: none; background: transparent; text-align: left;
+      font: inherit; border-bottom: 0.5px solid var(--sep); cursor: pointer;
+    }
+    .proj-row .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .proj-row .info { flex: 1; min-width: 0; }
+    .proj-row .n { font-size: 17px; font-weight: 500; }
+    .proj-row .s { font-size: 13px; color: var(--secondary); margin-top: 2px; }
+    .proj-row .check { color: var(--blue); font-size: 18px; width: 24px; text-align: center; }
+
+    .toast {
+      position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%);
+      background: rgba(30,30,30,.92); color: #fff; padding: 12px 16px; border-radius: 14px;
+      font-size: 15px; opacity: 0; pointer-events: none; transition: .25s; z-index: 50;
+    }
+    .toast.show { opacity: 1; }
+    .caption { margin-top: 12px; color: rgba(255,255,255,.45); font-size: 12px; text-align: center; max-width: 393px; line-height: 1.45; }
+    .caption a { color: rgba(255,255,255,.7); }
+
+    /* 方案3 全屏项目页（盖在主界面上） */
+    .proj-page {
+      display: none; position: absolute; inset: 0; background: var(--bg); z-index: 25;
+      flex-direction: column;
+    }
+    body[data-mode="sidebar"] .proj-page.force-show,
+    .proj-page.open { display: flex; }
+    /* 在 sidebar 模式默认不强制盖住，除非用户点「项目」 */
+  </style>
+</head>
+<body data-mode="sidebar">
+  <div class="proto">
+    <strong>项目切换（移动端合理形态）</strong>
+    <div class="row">
+      <button type="button" data-mode="tabs">1 · 顶栏条</button>
+      <button type="button" data-mode="dropdown">2 · 导航下拉</button>
+      <button type="button" data-mode="sidebar" class="on">3 · 项目列表</button>
+    </div>
+  </div>
+
+  <div class="device">
+    <div class="island"></div>
+    <div class="status-bar"><span>9:41</span><span>●●●●</span></div>
+    <div class="nav">
+      <button type="button" id="nav-left">项目</button>
+      <div class="title" id="nav-title">demo-shop</div>
+      <button type="button" id="nav-right">···</button>
+    </div>
+    <div class="project-strip" id="project-strip"></div>
+
+    <div class="scroll">
+      <!-- 采集页 -->
+      <div class="page on" id="page-capture">
+        <div class="large-title">
+          <h1>待办</h1>
+          <p id="mode-hint">项目列表 · 点左上角「项目」切换</p>
+        </div>
+        <div class="section">
+          <div class="section-header">新建 · <span id="cap-proj-name">demo-shop</span></div>
+          <div class="group">
+            <div class="cell input-cell">
+              <div class="cell-label">需求描述</div>
+              <textarea id="ta" placeholder="用一句话说清要做什么…"></textarea>
+              <div class="toolbar-row">
+                <div class="ui-seg" id="prio">
+                  <button type="button" data-p="P0">P0</button>
+                  <button type="button" class="on" data-p="P1">P1</button>
+                  <button type="button" data-p="P2">P2</button>
+                </div>
+                <button type="button" class="btn-filled" id="send">加入待办</button>
+              </div>
+            </div>
+          </div>
+          <div class="section-footer">写入当前项目 Todo。实现侧异步消费。</div>
+        </div>
+        <div class="section">
+          <div class="section-header">队列</div>
+          <div class="group" id="list-capture"></div>
+        </div>
+      </div>
+
+      <!-- 进度页 -->
+      <div class="page" id="page-board">
+        <div class="large-title" style="padding-bottom:0"><h1 style="font-size:28px">进度</h1></div>
+        <div class="seg-pad">
+          <div class="segmented" id="seg">
+            <button type="button" class="on" data-s="todo">需求</button>
+            <button type="button" data-s="doing">进行中</button>
+            <button type="button" data-s="review">审核</button>
+            <button type="button" data-s="done">完成</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header" id="sec-h">需求 · 0</div>
+          <div class="group" id="list-board"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="tabbar">
+      <button class="tab on" type="button" data-page="capture">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M8 8h5"/></svg>
+        采集
+      </button>
+      <button class="tab" type="button" data-page="board">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        进度
+      </button>
+      <button class="tab" type="button" id="tab-projects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M8 6V4h8v2"/></svg>
+        项目
+      </button>
+    </nav>
+
+    <!-- 详情 sheet -->
+    <div class="dim" id="detail-dim">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="handle"></div>
+        <div class="sheet-nav">
+          <button type="button" id="detail-close">关闭</button>
+          <div class="t">详情</div>
+          <button type="button" id="detail-copy">复制</button>
+        </div>
+        <div class="sheet-body">
+          <div id="s-id" style="font-size:13px;color:var(--secondary);font-family:ui-monospace,monospace"></div>
+          <h2 id="s-title"></h2>
+          <p id="s-desc"></p>
+          <div id="s-extra"></div>
+          <h4>验收标准</h4>
+          <ul id="s-ac"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 项目选择 sheet（方案2下拉 / 方案3列表 / 点「项目」） -->
+    <div class="dim" id="proj-dim">
+      <div class="sheet" onclick="event.stopPropagation()" style="max-height:90%">
+        <div class="handle"></div>
+        <div class="sheet-nav">
+          <button type="button" id="proj-close">完成</button>
+          <div class="t">选择项目</div>
+          <button type="button" id="proj-add">新建</button>
+        </div>
+        <div class="sheet-body" style="padding-top:4px" id="proj-list"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">已加入待办</div>
+  </div>
+  <p class="caption">
+    iOS 全功能合并版 · 采集 + 进度 + 三种项目切换<br/>
+    localStorage 记住项目与切换方案 · <a href="需求引擎_UI_索引.html">索引</a>
+  </p>
+
+  <script>
+
+    const COLORS = ["#007aff", "#af52de", "#34c759", "#ff9500", "#ff3b30", "#5ac8fa"];
+    const PROJECTS = [
+      {
+        id: "demo-shop", name: "demo-shop", color: COLORS[0], blurb: "电商前台与结算",
+        tasks: [
+          {id:"REQ-018",title:"结算页增加发票抬头可选填写",priority:"P1",status:"todo",scope:["frontend/checkout"],deps:[],updated:"12 分钟前",description:"B 端用户下单时填写发票抬头。",ac:["结算页出现发票抬头","可不填直接下单"],timeline:[{t:"今天 14:02",actor:"planner@codex",text:"创建需求"}]},
+          {id:"REQ-017",title:"搜索结果支持按销量排序",priority:"P2",status:"todo",scope:["frontend/search"],deps:["REQ-012"],updated:"40 分钟前",description:"增加销量排序。",ac:["排序含销量"],timeline:[{t:"今天 13:30",actor:"planner@codex",text:"创建需求"}]},
+          {id:"REQ-016",title:"首页快捷入口（运营可配置）",priority:"P0",status:"todo",scope:["frontend/home"],deps:[],updated:"1 小时前",description:"四个快捷入口。",ac:["首页展示","移动端正常"],timeline:[{t:"今天 12:10",actor:"planner@kimi",text:"创建需求"}]},
+          {id:"REQ-015",title:"购物车数量角标实时更新",priority:"P1",status:"in_progress",scope:["frontend/cart"],deps:[],updated:"3 分钟前",progress:"正在改 Header 订阅 cart store",claimed_by:"grok-foreman",description:"加购后角标立即变化。",ac:["加购角标+1"],timeline:[{t:"今天 14:10",actor:"grok-foreman",text:"claim"}]},
+          {id:"REQ-014",title:"订单列表筛选「近 30 天」",priority:"P2",status:"in_progress",scope:["frontend/orders"],deps:[],updated:"2 分钟前",progress:"API 已通，前端开发中",claimed_by:"grok-foreman",description:"时间快捷筛选。",ac:["近7/30天"],timeline:[{t:"今天 14:20",actor:"grok-foreman",text:"claim"}]},
+          {id:"REQ-013",title:"支付回调幂等加固",priority:"P0",status:"blocked",scope:["backend/pay"],deps:[],updated:"26 小时前",claimed_by:"grok-foreman",blocked_reason:"等待支付沙箱凭证",description:"重复回调不重复发货。",ac:["notify_id 幂等"],timeline:[{t:"昨天",actor:"grok-foreman",text:"blocked"}]},
+          {id:"REQ-012",title:"搜索 API 返回 sales_count",priority:"P1",status:"review",scope:["api/search"],deps:[],updated:"20 分钟前",claimed_by:"grok-foreman",external:"https://example.com/pr/81",description:"为销量排序提供字段。",ac:["含 sales_count"],timeline:[{t:"今天",actor:"grok-foreman",text:"review"}]},
+          {id:"REQ-011",title:"登录页错误文案统一",priority:"P3",status:"review",scope:["frontend/auth"],deps:[],updated:"1 小时前",claimed_by:"grok-foreman",description:"文案对齐设计规范。",ac:["与设计稿一致"],timeline:[{t:"今天",actor:"grok-foreman",text:"review"}]},
+          {id:"REQ-008",title:"页脚版权年份动态化",priority:"P3",status:"done",scope:["frontend/layout"],deps:[],updated:"2 天前",description:"页脚年份取当前年。",ac:["当前公历年"],timeline:[{t:"2天前",actor:"human",text:"done"}]},
+          {id:"REQ-007",title:"移除废弃 /v1/legacy-cart",priority:"P2",status:"done",scope:["api/cart"],deps:[],updated:"4 天前",description:"确认无流量后删除。",ac:["路由404"],timeline:[{t:"4天前",actor:"grok-foreman",text:"done"}]},
+        ],
+      },
+      {
+        id: "trace-sight", name: "TraceSight", color: COLORS[1], blurb: "可观测与轨迹分析",
+        tasks: [
+          {id:"TS-021",title:"Session 时间线支持折叠 thinking",priority:"P1",status:"todo",scope:["frontend/timeline"],deps:[],updated:"1 小时前",description:"长 thinking 默认折叠。",ac:["默认折叠","一键展开"],timeline:[{t:"今天",actor:"planner",text:"创建"}]},
+          {id:"TS-020",title:"导出 run 为 JSONL",priority:"P2",status:"in_progress",scope:["api/export"],deps:[],updated:"30 分钟前",progress:"序列化字段对齐中",claimed_by:"codex-foreman",description:"供外部分析。",ac:["含 tool 事件"],timeline:[{t:"今天",actor:"codex-foreman",text:"claim"}]},
+          {id:"TS-019",title:"项目级采样率配置",priority:"P0",status:"review",scope:["backend/config"],deps:[],updated:"2 小时前",claimed_by:"codex-foreman",description:"按项目设置 trace 采样。",ac:["配置可热更新"],timeline:[{t:"今天",actor:"codex-foreman",text:"review"}]},
+          {id:"TS-015",title:"删除旧 demo 路由",priority:"P3",status:"done",scope:["api"],deps:[],updated:"3 天前",description:"清理历史接口。",ac:["404"],timeline:[{t:"3天前",actor:"human",text:"done"}]},
+        ],
+      },
+      {
+        id: "req-engine", name: "需求引擎", color: COLORS[2], blurb: "本产品本体",
+        tasks: [
+          {id:"RE-003",title:"MCP claim 原子性单测",priority:"P0",status:"todo",scope:["engine/mcp"],deps:[],updated:"20 分钟前",description:"防双领。",ac:["并发 claim 仅一人成功"],timeline:[{t:"今天",actor:"planner",text:"创建"}]},
+          {id:"RE-002",title:"看板四栏映射文档",priority:"P2",status:"in_progress",scope:["docs"],deps:[],updated:"1 小时前",progress:"写 PRD 状态映射",claimed_by:"human",description:"状态机与 UI 栏对齐。",ac:["表格完整"],timeline:[{t:"今天",actor:"human",text:"进行中"}]},
+          {id:"RE-001",title:"引擎零 LLM 边界检查清单",priority:"P1",status:"done",scope:["docs"],deps:[],updated:"昨天",description:"硬约束列表。",ac:["PRD 写明"],timeline:[{t:"昨天",actor:"human",text:"done"}]},
+        ],
+      },
+      {
+        id: "mobile-h5", name: "mobile-h5", color: COLORS[3], blurb: "活动 H5",
+        tasks: [
+          {id:"H5-008",title:"分享卡片 Open Graph",priority:"P1",status:"todo",scope:["frontend/share"],deps:[],updated:"昨天",description:"微信分享图。",ac:["标题摘要图"],timeline:[{t:"昨天",actor:"planner",text:"创建"}]},
+          {id:"H5-007",title:"iOS 安全区适配",priority:"P1",status:"blocked",scope:["frontend/layout"],deps:[],updated:"2 天前",blocked_reason:"等设计标注 safe-area",claimed_by:"worker",description:"底部按钮上移。",ac:["全面屏不遮挡"],timeline:[{t:"2天前",actor:"worker",text:"blocked"}]},
+          {id:"H5-005",title:"埋点 PV/UV",priority:"P2",status:"done",scope:["analytics"],deps:[],updated:"5 天前",description:"基础埋点。",ac:["控制台可见"],timeline:[{t:"5天前",actor:"worker",text:"done"}]},
+        ],
+      },
+    ];
+    const COLS = [
+      { title: "需求", statuses: ["todo"] },
+      { title: "进行中", statuses: ["in_progress","blocked","scheduled"] },
+      { title: "审核中", statuses: ["review"] },
+      { title: "已完成", statuses: ["done"] },
+    ];
+
+    const MODE_HINT = {
+      tabs: "顶栏项目条（横向滑动）",
+      dropdown: "导航栏下拉选项目",
+      sidebar: "项目列表页（类会话历史）",
+    };
+    let mode = localStorage.getItem("re_ios_mode") || "sidebar";
+    let projectId = localStorage.getItem("re_ios_project") || "demo-shop";
+    let filter = "all";
+    let q = "";
+    let selected = null;
+    let statusTab = "todo";
+
+    const esc = s => String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+    const project = () => PROJECTS.find(p => p.id === projectId) || PROJECTS[0];
+    const tasks = () => project().tasks;
+    const countOf = (list, pred) => list.filter(pred).length;
+    const MAP = { todo:["todo"], doing:["in_progress","blocked","scheduled"], review:["review"], done:["done"] };
+    const LABELS = { todo:"需求", doing:"进行中", review:"审核", done:"完成" };
+
+    function persist() {
+      localStorage.setItem("re_ios_mode", mode);
+      localStorage.setItem("re_ios_project", projectId);
+    }
+    function selectProject(id) {
+      if (!PROJECTS.some(p => p.id === id)) return;
+      projectId = id; selected = null; persist();
+      if (typeof closeSheet === "function") closeSheet();
+      if (typeof closeProjectPicker === "function") closeProjectPicker();
+      renderAll();
+    }
+    function setMode(m) {
+      mode = m; persist();
+      document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+      document.body.dataset.mode = m;
+      const hint = document.getElementById("mode-hint");
+      if (hint) hint.textContent = MODE_HINT[m];
+      if (typeof renderAll === "function") renderAll();
+    }
+    function addProject() {
+      const name = prompt("新项目名称", "new-project");
+      if (!name?.trim()) return;
+      const id = name.trim().toLowerCase().replace(/\s+/g,"-") + "-" + Date.now().toString(36).slice(-4);
+      PROJECTS.push({ id, name: name.trim(), color: COLORS[PROJECTS.length % COLORS.length], blurb: "新建项目", tasks: [] });
+      selectProject(id);
+    }
+
+    let page = "capture";
+    let prio = "P1";
+
+    function closeSheet() {
+      document.getElementById("detail-dim").classList.remove("open");
+      selected = null;
+    }
+    function closeProjectPicker() {
+      document.getElementById("proj-dim").classList.remove("open");
+    }
+    function openProjectPicker() {
+      renderProjectList();
+      document.getElementById("proj-dim").classList.add("open");
+    }
+
+    function renderProjectStrip() {
+      const strip = document.getElementById("project-strip");
+      strip.innerHTML = PROJECTS.map(x => `
+        <button type="button" class="chip-p ${x.id===projectId?"on":""}" data-id="${esc(x.id)}">
+          <span class="dot" style="background:${x.id===projectId?"#fff":x.color}"></span>
+          ${esc(x.name)}
+        </button>`).join("") + `<button type="button" class="chip-p chip-add" id="chip-add">＋</button>`;
+      strip.querySelectorAll(".chip-p[data-id]").forEach(el => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      document.getElementById("chip-add")?.addEventListener("click", addProject);
+    }
+
+    function renderProjectList() {
+      const box = document.getElementById("proj-list");
+      box.innerHTML = PROJECTS.map(x => {
+        const active = x.tasks.filter(t => t.status==="in_progress"||t.status==="blocked").length;
+        return `<button type="button" class="proj-row" data-id="${esc(x.id)}">
+          <span class="dot" style="background:${x.color}"></span>
+          <span class="info">
+            <div class="n">${esc(x.name)}</div>
+            <div class="s">${esc(x.blurb)} · ${x.tasks.length} 任务${active?" · "+active+" 进行中":""}</div>
+          </span>
+          <span class="check">${x.id===projectId?"✓":""}</span>
+        </button>`;
+      }).join("");
+      box.querySelectorAll(".proj-row").forEach(el => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+    }
+
+    function openDetail(t) {
+      selected = t.id;
+      document.getElementById("detail-dim").classList.add("open");
+      document.getElementById("s-id").textContent = project().name + " · " + t.id + " · " + t.priority + " · " + t.status;
+      document.getElementById("s-title").textContent = t.title;
+      document.getElementById("s-desc").textContent = t.description || "";
+      document.getElementById("s-extra").innerHTML =
+        (t.blocked_reason ? `<p style="color:var(--red);margin-top:8px">${esc(t.blocked_reason)}</p>` : "") +
+        (t.progress ? `<p style="color:var(--secondary);margin-top:8px">进度：${esc(t.progress)}</p>` : "") +
+        (t.claimed_by ? `<p style="font-size:13px;margin-top:6px;color:var(--secondary)">claimed_by: ${esc(t.claimed_by)}</p>` : "");
+      document.getElementById("s-ac").innerHTML = (t.ac||[]).map(a=>`<li>${esc(a)}</li>`).join("") || "<li>—</li>";
+    }
+
+    function renderCaptureList() {
+      const list = document.getElementById("list-capture");
+      const items = tasks().filter(t => t.status === "todo" || t.status === "in_progress" || t.status === "blocked");
+      list.innerHTML = "";
+      if (!items.length) {
+        list.innerHTML = `<div class="cell" style="color:var(--secondary);justify-content:center">暂无待办，在上方添加</div>`;
+        return;
+      }
+      items.forEach(t => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "cell";
+        const dot = t.status === "blocked" ? "blocked" : t.status === "todo" ? "todo" : "";
+        b.innerHTML = `
+          <span class="status-dot ${dot}"></span>
+          <div class="cell-title">
+            <div class="primary">${esc(t.title)}</div>
+            <div class="secondary">
+              <span class="badge ${t.priority.toLowerCase()}">${t.priority}</span>
+              <span>${esc(t.id)}</span><span>${esc(t.updated)}</span>
+              ${t.status==="in_progress"?'<span style="color:var(--blue)">进行中</span>':""}
+              ${t.status==="blocked"?'<span style="color:var(--red)">阻塞</span>':""}
+            </div>
+          </div>
+          <span class="disclosure">›</span>`;
+        b.onclick = () => openDetail(t);
+        list.appendChild(b);
+      });
+    }
+
+    function renderBoardList() {
+      const items = tasks().filter(t => MAP[statusTab].includes(t.status));
+      document.getElementById("sec-h").textContent = LABELS[statusTab] + " · " + items.length;
+      const list = document.getElementById("list-board");
+      list.innerHTML = "";
+      if (!items.length) {
+        list.innerHTML = `<div class="cell" style="color:var(--secondary);justify-content:center">此栏暂无任务</div>`;
+        return;
+      }
+      items.forEach(t => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "cell";
+        b.innerHTML = `
+          <div class="cell-title" style="width:100%">
+            <div class="secondary" style="margin-bottom:2px">
+              <span>${esc(t.id)}</span>
+              <span class="badge ${t.priority.toLowerCase()}">${t.priority}</span>
+              ${t.status==="blocked"?'<span class="badge p0">阻塞</span>':""}
+              <span style="margin-left:auto">${esc(t.updated)}</span>
+            </div>
+            <div class="primary" style="white-space:normal">${esc(t.title)}</div>
+            ${t.progress?`<div class="secondary">${esc(t.progress)}</div>`:""}
+            ${t.blocked_reason?`<div class="secondary" style="color:var(--red)">${esc(t.blocked_reason)}</div>`:""}
+          </div>
+          <span class="disclosure">›</span>`;
+        b.onclick = () => openDetail(t);
+        list.appendChild(b);
+      });
+    }
+
+    function renderAll() {
+      const p = project();
+      document.getElementById("nav-title").textContent = p.name;
+      document.getElementById("cap-proj-name").textContent = p.name;
+      document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+      document.body.dataset.mode = mode;
+      document.getElementById("mode-hint").textContent = MODE_HINT[mode] + " · " + p.blurb;
+      renderProjectStrip();
+      renderCaptureList();
+      renderBoardList();
+      // 方案2：点标题=下拉项目；方案3：左上角/项目 Tab 打开列表
+      document.getElementById("nav-title").style.cursor = mode === "dropdown" ? "pointer" : "default";
+    }
+
+    // mode buttons
+    document.querySelectorAll(".proto [data-mode]").forEach(b => {
+      b.addEventListener("click", () => setMode(b.dataset.mode));
+    });
+
+    document.getElementById("nav-left").addEventListener("click", openProjectPicker);
+    document.getElementById("nav-title").addEventListener("click", () => {
+      if (mode === "dropdown" || mode === "sidebar") openProjectPicker();
+    });
+    document.getElementById("nav-right").addEventListener("click", openProjectPicker);
+    document.getElementById("tab-projects").addEventListener("click", openProjectPicker);
+    document.getElementById("proj-close").addEventListener("click", closeProjectPicker);
+    document.getElementById("proj-add").addEventListener("click", addProject);
+    document.getElementById("proj-dim").addEventListener("click", e => { if (e.target.id==="proj-dim") closeProjectPicker(); });
+
+    document.getElementById("detail-close").addEventListener("click", closeSheet);
+    document.getElementById("detail-dim").addEventListener("click", e => { if (e.target.id==="detail-dim") closeSheet(); });
+    document.getElementById("detail-copy").addEventListener("click", () => {
+      if (selected) navigator.clipboard?.writeText(selected);
+    });
+
+    document.querySelectorAll(".tabbar .tab[data-page]").forEach(tab => {
+      tab.addEventListener("click", () => {
+        page = tab.dataset.page;
+        document.querySelectorAll(".tabbar .tab[data-page]").forEach(x => x.classList.toggle("on", x.dataset.page === page));
+        document.getElementById("page-capture").classList.toggle("on", page === "capture");
+        document.getElementById("page-board").classList.toggle("on", page === "board");
+      });
+    });
+
+    document.querySelectorAll("#seg button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#seg button").forEach(x => x.classList.remove("on"));
+        btn.classList.add("on");
+        statusTab = btn.dataset.s;
+        renderBoardList();
+      });
+    });
+
+    document.querySelectorAll("#prio button").forEach(b => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#prio button").forEach(x => x.classList.remove("on"));
+        b.classList.add("on"); prio = b.dataset.p;
+      });
+    });
+
+    document.getElementById("send").addEventListener("click", () => {
+      const ta = document.getElementById("ta");
+      const v = ta.value.trim();
+      if (!v) return;
+      const id = projectId.slice(0,2).toUpperCase() + "-" + String(100 + project().tasks.length + 1).slice(-3);
+      project().tasks.unshift({
+        id, title: v, priority: prio, status: "todo", scope: [], deps: [],
+        updated: "刚刚", description: v, ac: [],
+        timeline: [{ t: "刚刚", actor: "human", text: "创建需求" }],
+      });
+      ta.value = "";
+      renderAll();
+      const toast = document.getElementById("toast");
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1500);
+    });
+
+    document.querySelectorAll(".proto [data-mode]").forEach(b => {
+      b.onclick = () => setMode(b.dataset.mode);
+    });
+    document.querySelectorAll(".proto [data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+    document.body.dataset.mode = mode;
+
+    renderAll();
+    if (location.hash === "#board") {
+      document.querySelector('.tabbar .tab[data-page="board"]')?.click();
+    }
+  </script>
+</body>
+</html>

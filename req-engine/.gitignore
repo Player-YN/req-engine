@@ -1,0 +1,24 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Local data
+/data/
+*.sqlite
+*.sqlite3
+*.db
+tokens.txt
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+
+# Local cargo config (proxies etc.)
+.cargo/

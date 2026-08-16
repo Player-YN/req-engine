@@ -1,0 +1,2486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>需求引擎 · Windows Fluent 看板</title>
+  <link rel="icon" href="data:,">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <!-- Visual system aligned with demo/需求引擎_UI_Windows_Fluent.html (mica Fluent). Offline: no CDN. -->
+  <style>
+    :root {
+      --text: #1a1a1a;
+      --text-2: #5d5d5d;
+      --stroke: rgba(0,0,0,.08);
+      --brand: #005fb8;
+      --brand-bg: rgba(0,95,184,.1);
+      --danger: #c42b1c;
+      --warning: #9d5d00;
+      --bg-soft: rgba(249,249,249,.92);
+      --card: #fff;
+      --radius: 8px;
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      color: var(--text);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+      /* Soft app canvas (demo mica), full window — no fake outer desktop wallpaper */
+      background: linear-gradient(180deg, #eef2f7 0%, #f3f3f3 40%, #f7f7f7 100%);
+    }
+
+    /* Full-bleed shell = demo .window look, edge-to-edge in OS client area */
+    .app, .window {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(243,243,243,.96), rgba(249,249,249,.98));
+      box-shadow: none;
+    }
+
+    /* Self-drawn titlebar only when the native host marks the page (frameless). */
+    .titlebar { display: none; }
+    body.is-desktop .titlebar {
+      display: flex;
+      height: 36px;
+      align-items: center;
+      padding-left: 12px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(243,243,243,.55));
+      border-bottom: 1px solid var(--stroke);
+      user-select: none;
+      -webkit-app-region: drag;
+      app-region: drag;
+    }
+    .titlebar .app-glyph {
+      width: 16px; height: 16px; border-radius: 3px;
+      background: linear-gradient(135deg, #0078d4, #5c2d91);
+      margin-right: 8px;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+    .titlebar .app-name {
+      font-size: 12px; color: var(--text-2); flex: 1;
+      pointer-events: none;
+    }
+    .titlebar .caption {
+      display: flex; height: 100%;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
+    .titlebar .caption button {
+      width: 46px; height: 100%; border: none; background: transparent;
+      display: grid; place-items: center; font-size: 11px; color: var(--text);
+      cursor: default;
+    }
+    .titlebar .caption button:hover { background: rgba(0,0,0,.06); }
+    .titlebar .caption .win-quit { width: auto; padding: 0 10px; font-size: 11px; color: var(--text-2); }
+    .titlebar .caption .win-quit:hover { background: rgba(196,43,28,.12); color: #c42b1c; }
+    .titlebar .caption .win-close:hover { background: #c42b1c; color: #fff; }
+
+    .project-tabs {
+      display: flex !important;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 8px;
+      background: rgba(0,0,0,.04);
+      border-bottom: 1px solid var(--stroke);
+      min-height: 36px;
+      max-height: 40px;
+      overflow-x: auto;
+      overflow-y: hidden; /* avoid useless vertical ▲▼ scroll buttons */
+      flex-shrink: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,.2) transparent;
+    }
+    .project-tabs::-webkit-scrollbar { height: 4px; width: 0; }
+    .project-tabs::-webkit-scrollbar:vertical { display: none; width: 0; height: 0; }
+    .project-tabs::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,.18); border-radius: 4px;
+    }
+    body.mode-tabs .project-tabs { display: flex !important; }
+    .ptab {
+      display: flex; align-items: center; gap: 2px;
+      max-width: 200px; height: 32px; padding: 0 4px 0 8px;
+      border: 1px solid transparent; border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: transparent; color: var(--text-2);
+      font: inherit; font-size: 12px;
+      position: relative; top: 1px;
+    }
+    .ptab:hover { background: rgba(255,255,255,.5); color: var(--text); }
+    .ptab.on {
+      background: #fff; color: var(--text); font-weight: 600;
+      border-color: var(--stroke); box-shadow: 0 -1px 0 #fff;
+    }
+    .ptab-main {
+      display: flex; align-items: center; gap: 8px;
+      border: none; background: transparent; font: inherit; color: inherit;
+      cursor: pointer; max-width: 150px; padding: 0 4px; min-width: 0;
+    }
+    .ptab .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .ptab .name {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ptab-close {
+      width: 22px; height: 22px; border: none; border-radius: 4px;
+      background: transparent; color: var(--text-2); cursor: pointer;
+      font-size: 14px; line-height: 1; flex-shrink: 0; opacity: .45;
+    }
+    .ptab:hover .ptab-close, .ptab.on .ptab-close { opacity: .85; }
+    .ptab-close:hover { background: rgba(196,43,28,.12); color: var(--danger); opacity: 1 !important; }
+    .ptab-add {
+      height: 28px; width: 28px; margin: 0 4px 2px; border-radius: 6px;
+      border: 1px dashed var(--stroke); background: transparent;
+      cursor: pointer; color: var(--text-2); font-size: 16px;
+    }
+    .ptab-add:hover { background: rgba(255,255,255,.7); color: var(--brand); }
+
+    .app-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 12px 10px 16px;
+      border-bottom: 1px solid var(--stroke);
+      flex-shrink: 0;
+      background: transparent;
+    }
+    .app-header h1 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .spacer { flex: 1; }
+    .search-field {
+      min-width: 180px; height: 32px; padding: 0 10px;
+      border: 1px solid rgba(0,0,0,.14); border-radius: 4px;
+      font: inherit; font-size: 13px; background: #fff;
+    }
+    .search-field:focus { outline: 2px solid rgba(0,95,184,.35); border-color: var(--brand); }
+
+    .dropdown-wrap { display: none; position: relative; }
+    body.mode-dropdown .dropdown-wrap { display: block; }
+    body.mode-tabs .dropdown-wrap,
+    body.mode-sidebar .dropdown-wrap { display: none; }
+    body.mode-dropdown .project-tabs { display: none; }
+
+    .dd-btn {
+      display: flex; align-items: center; gap: 8px;
+      height: 32px; padding: 0 10px; border-radius: 4px;
+      border: 1px solid var(--stroke); background: #fff;
+      font: inherit; cursor: pointer; min-width: 160px;
+    }
+    .dd-btn:hover { background: #f5f5f5; }
+    .dd-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dd-btn .caret { margin-left: auto; color: var(--text-2); font-size: 10px; }
+    .dd-menu {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0;
+      min-width: 240px; background: #fff; border: 1px solid var(--stroke);
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 50;
+      padding: 4px; max-height: 280px; overflow-y: auto;
+    }
+    .dd-menu.open { display: block; }
+    .dd-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 8px 10px; border: none; background: transparent;
+      font: inherit; text-align: left; border-radius: 6px; cursor: pointer;
+    }
+    .dd-item:hover { background: rgba(0,0,0,.04); }
+    .dd-item.on { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+    .dd-item .meta { margin-left: auto; font-size: 11px; color: var(--text-2); font-weight: 400; }
+    .dd-sep { height: 1px; background: var(--stroke); margin: 4px 0; }
+    .dd-item.add { color: var(--brand); }
+
+    .shell { display: flex; flex: 1; min-height: 0; }
+
+    .conv-rail {
+      display: none;
+      width: 240px; flex-shrink: 0;
+      border-right: 1px solid var(--stroke);
+      background: rgba(255,255,255,.35);
+      flex-direction: column;
+      min-height: 0;
+    }
+    body.mode-sidebar .conv-rail { display: flex; }
+    body.mode-sidebar .nav-filters { width: 180px; }
+    .conv-head {
+      padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .conv-head h2 { font-size: 13px; font-weight: 600; flex: 1; }
+    .conv-new {
+      border: none; background: var(--brand); color: #fff;
+      width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 16px;
+    }
+    .conv-search {
+      margin: 0 10px 8px; height: 30px; border-radius: 6px; border: 1px solid var(--stroke);
+      padding: 0 10px; font: inherit; font-size: 12px; width: calc(100% - 20px);
+      background: #fff;
+    }
+    .conv-list { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+    .conv-item {
+      width: 100%; text-align: left; border: none; background: transparent;
+      padding: 10px 10px; border-radius: 8px; cursor: pointer; font: inherit;
+      margin-bottom: 2px;
+    }
+    .conv-item:hover { background: rgba(0,0,0,.04); }
+    .conv-item.on { background: var(--brand-bg); }
+    .conv-item .row1 {
+      display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px;
+    }
+    .conv-item .row1 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .conv-item .row2 {
+      margin-top: 4px; font-size: 11px; color: var(--text-2);
+      padding-left: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .conv-item.on .row1 { color: var(--brand); }
+
+    .nav-filters {
+      width: 200px; flex-shrink: 0;
+      border-right: 1px solid var(--stroke);
+      padding: 8px 6px;
+      display: flex; flex-direction: column; gap: 2px;
+      background: rgba(255,255,255,.35);
+      position: relative;
+      z-index: 6;
+      pointer-events: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+    }
+    .nav-filters::-webkit-scrollbar { width: 4px; }
+    .nav-filters::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,.15); border-radius: 4px;
+    }
+    .nav-section {
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      padding: 10px 12px 4px; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 4px; border: none;
+      background: transparent; font: inherit; color: var(--text);
+      cursor: pointer; width: 100%; text-align: left;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+    }
+    .nav-item:hover { background: rgba(0,0,0,.04); }
+    .nav-item.active { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+    .nav-item .badge {
+      margin-left: auto; font-size: 11px; min-width: 20px; text-align: center;
+      background: rgba(0,0,0,.06); border-radius: 10px; padding: 0 6px;
+      pointer-events: none; /* clicks go to the button */
+    }
+    .stats {
+      margin: 12px 6px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .stat {
+      background: #fff; border: 1px solid var(--stroke);
+      border-radius: 6px; padding: 8px 10px;
+      cursor: pointer; font: inherit; color: inherit; text-align: left;
+      width: 100%;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .stat:hover { border-color: rgba(0,95,184,.35); background: #f8fbff; }
+    .stat.active {
+      border-color: var(--brand);
+      background: var(--brand-bg);
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+    .stat .n { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .stat .l { font-size: 11px; color: var(--text-2); }
+    .col.flash {
+      outline: 2px solid var(--brand);
+      outline-offset: -2px;
+      background: rgba(0,95,184,.04);
+    }
+    .hint {
+      margin: auto 6px 8px; font-size: 11px; color: var(--text-2); line-height: 1.45;
+      padding: 10px; border-radius: 6px; border: 1px dashed var(--stroke);
+      background: rgba(255,255,255,.4);
+    }
+
+    .main {
+      flex: 1; display: block; min-width: 0; position: relative;
+      background: rgba(249,249,249,.55); overflow: hidden;
+    }
+    .board {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(240px, 1fr));
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .col {
+      border-right: 1px solid var(--stroke);
+      display: flex; flex-direction: column; min-width: 240px; height: 100%; min-height: 0;
+    }
+    .col-h {
+      padding: 12px 12px 8px; display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+    }
+    .col-h b { color: var(--text); font-size: 13px; }
+    .col-h .count {
+      font-size: 11px; background: rgba(255,255,255,.8);
+      border: 1px solid var(--stroke); border-radius: 10px; padding: 0 7px;
+    }
+    .col-h-wrap {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 4px 8px 0; flex-shrink: 0;
+    }
+    .col-bulk-cancel {
+      align-self: stretch;
+      height: 28px;
+      font-size: 11px;
+      color: var(--danger);
+      border-color: #f0b4ae;
+      background: #fff;
+    }
+    .col-bulk-cancel:hover { background: #fde7e9; }
+    .col-h-todo {
+      cursor: pointer; user-select: none; border-radius: 6px;
+      margin: 0; padding: 8px 10px !important;
+      border: 1px dashed transparent; transition: .15s;
+      background: transparent; width: 100%;
+      font: inherit; color: inherit; text-align: left;
+    }
+    .col-h-todo:hover {
+      background: rgba(0,95,184,.08); border-color: rgba(0,95,184,.35); color: var(--brand);
+    }
+    .col-h-todo .col-h-default { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .col-h-todo .col-h-create {
+      display: none; align-items: center; gap: 8px; width: 100%;
+      color: var(--brand); font-weight: 600;
+    }
+    .col-h-todo:hover .col-h-default { display: none; }
+    .col-h-todo:hover .col-h-create { display: flex; }
+    .col-h-todo .plus {
+      width: 20px; height: 20px; border-radius: 4px; background: var(--brand); color: #fff;
+      display: grid; place-items: center; font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .empty-col {
+      color: var(--text-2); font-size: 12px; padding: 16px 8px; text-align: center;
+    }
+    .ptab-add-label {
+      height: 28px; margin: 0 4px 2px; padding: 0 10px; border-radius: 6px;
+      border: 1px dashed var(--stroke); background: #fff;
+      cursor: pointer; color: var(--brand); font-size: 12px; font-weight: 600;
+      position: relative; z-index: 6; flex-shrink: 0;
+    }
+    .ptab-add-label:hover { background: rgba(255,255,255,.7); color: var(--brand); }
+    .main {
+      background: rgba(249,249,249,.55) !important;
+    }
+    .status-bar {
+      background: rgba(255,255,255,.35) !important;
+    }
+    .col-b {
+      padding: 6px 10px 14px; overflow-y: auto; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .card {
+      text-align: left; font: inherit; color: inherit; cursor: pointer;
+      background: #fff; border: 1px solid var(--stroke); border-radius: 8px;
+      padding: 11px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .card.selected { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+    .card.blocked { border-left: 3px solid var(--danger); }
+    .card-top { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 11px; color: var(--text-2); }
+    .card-id { font-family: Consolas, monospace; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prio { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+    .p0 { background: #fde7e9; color: var(--danger); }
+    .p1 { background: #fff4ce; color: var(--warning); }
+    .p2 { background: #e8f3fc; color: var(--brand); }
+    .p3 { background: #f0f0f0; color: var(--text-2); }
+    .card-title { font-weight: 600; font-size: 13px; line-height: 1.35; margin-bottom: 8px; }
+    .card-meta { font-size: 11px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .progress { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; font-size: 11px; color: var(--text-2); }
+
+    .drawer {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 0; overflow: hidden;
+      transition: width .2s ease, box-shadow .2s; background: #fff; z-index: 20;
+      border-left: 1px solid transparent;
+    }
+    .drawer.open {
+      width: min(380px, 40vw); border-left-color: var(--stroke);
+      box-shadow: -8px 0 24px rgba(0,0,0,.1);
+    }
+    .drawer-inner { width: min(380px, 40vw); height: 100%; display: flex; flex-direction: column; min-height: 0; }
+    .drawer-h {
+      padding: 14px 48px 14px 16px; border-bottom: 1px solid var(--stroke); position: relative;
+    }
+    .drawer-h .sub { font-size: 11px; color: var(--text-2); word-break: break-all; }
+    .drawer-h h2 { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .btn-icon {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: 1px solid var(--stroke); border-radius: 4px; background: #f5f5f5;
+      cursor: pointer; font-size: 16px;
+    }
+    .drawer-b { flex: 1; overflow: auto; padding: 14px 16px; min-height: 0; }
+    .drawer-b h4 { font-size: 11px; color: var(--text-2); text-transform: uppercase; margin: 14px 0 6px; }
+    .drawer-b p, .drawer-b li { font-size: 13px; line-height: 1.5; }
+    .drawer-b ul { padding-left: 18px; }
+    .alert { background: #fde7e9; color: var(--danger); padding: 10px; border-radius: 4px; font-size: 12px; }
+    .chip {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 3px;
+      background: #f5f5f5; border: 1px solid var(--stroke); margin: 0 4px 4px 0;
+      font-family: Consolas, monospace;
+    }
+    .drawer-f {
+      padding: 12px; border-top: 1px solid var(--stroke); display: flex; flex-wrap: wrap; gap: 8px; background: #fafafa;
+    }
+    .btn-native {
+      height: 32px; padding: 0 14px; border-radius: 4px; border: 1px solid var(--stroke);
+      background: #fff; font: inherit; font-size: 12px; cursor: pointer;
+    }
+    .btn-native.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+    .btn-native:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-native.primary:disabled {
+      background: #c8c8c8; border-color: #c8c8c8; color: #fff; opacity: 1;
+    }
+    .btn-native.danger { color: var(--danger); border-color: #f0b4ae; }
+
+    .status-bar {
+      height: 28px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+      padding: 0 12px; font-size: 11px; color: var(--text-2);
+      border-top: 1px solid var(--stroke); background: rgba(255,255,255,.35);
+    }
+    .status-bar .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #9a9a9a;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.08);
+    }
+    .status-bar .dot.ok { background: #0f7b0f; box-shadow: 0 0 0 2px rgba(15,123,15,.2); }
+    .status-bar .dot.err { background: var(--danger); box-shadow: 0 0 0 2px rgba(196,43,28,.2); }
+    .status-bar .dot.warn { background: #ca5010; box-shadow: 0 0 0 2px rgba(202,80,16,.2); }
+    .status-bar button.linkish {
+      border: none; background: transparent; color: var(--brand);
+      font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline;
+      padding: 0;
+    }
+
+    .cfg-strip {
+      display: none;
+      align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 12px; background: #fff8e8; border-bottom: 1px solid #f0d78c;
+      font-size: 12px; flex-shrink: 0;
+    }
+    .cfg-strip.open { display: flex; }
+    .cfg-strip .cfg-note { width: 100%; color: var(--text-2); font-size: 11px; line-height: 1.4; }
+    .cfg-strip label { color: var(--text-2); white-space: nowrap; }
+    .cfg-strip input {
+      height: 28px; border: 1px solid rgba(0,0,0,.14); border-radius: 4px;
+      padding: 0 8px; font: inherit; font-size: 12px; min-width: 160px;
+    }
+    .cfg-strip input#cfg-base { min-width: 220px; flex: 1; }
+    .cfg-strip input#cfg-token { min-width: 240px; flex: 1.2; font-family: Consolas, monospace; font-size: 11px; }
+    .cfg-strip .err-msg { color: var(--danger); width: 100%; font-size: 11px; }
+    /* Desktop: connected → no config strip; advanced only on failure / 设置 */
+    body.shell-native.conn-ok .status-cfg-label { display: none; }
+
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.32);
+      display: none;
+      /* True center — avoid top-stuck OS confirm / mis-aligned flex */
+      place-items: center;
+      place-content: center;
+      padding: 24px;
+      z-index: 200;
+      box-sizing: border-box;
+    }
+    .modal-mask.open { display: grid; }
+    .modal {
+      width: min(420px, 92vw);
+      max-height: min(90vh, 720px);
+      overflow: auto;
+      margin: 0;
+      background: #fff; border-radius: 8px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.22); border: 1px solid rgba(0,0,0,.08);
+      align-self: center; justify-self: center;
+    }
+    .modal.modal-confirm { width: min(400px, 92vw); }
+    .modal-confirm .modal-b { font-size: 13px; line-height: 1.5; color: var(--text); }
+    .modal-confirm .modal-b .warn { color: var(--danger); margin-top: 8px; font-size: 12px; }
+    .modal-h { padding: 14px 16px; font-size: 15px; font-weight: 600; border-bottom: 1px solid var(--stroke); }
+    .modal-b { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-b label { font-size: 12px; color: var(--text-2); }
+    .modal-b input, .modal-b textarea, .modal-b select {
+      width: 100%; font: inherit; font-size: 13px; padding: 8px 10px;
+      border: 1px solid rgba(0,0,0,.14); border-radius: 4px;
+    }
+    .modal-b textarea { min-height: 72px; resize: vertical; }
+    .modal-b .hint-line {
+      font-size: 11px; color: var(--text-2); line-height: 1.4; margin-top: 2px;
+    }
+    .modal-b .path-row {
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .modal-b .path-row input { flex: 1; min-width: 0; }
+    .modal-b .path-row .btn-native { flex-shrink: 0; height: auto; white-space: nowrap; }
+    .modal.modal-project { width: min(480px, 92vw); }
+    .modal-f {
+      padding: 12px 16px; border-top: 1px solid var(--stroke);
+      display: flex; justify-content: flex-end; gap: 8px; background: #fafafa;
+    }
+    .project-path-bar {
+      display: none;
+      align-items: center; gap: 8px;
+      padding: 4px 16px 6px;
+      font-size: 11px; color: var(--text-2);
+      border-bottom: 1px solid var(--stroke);
+      background: rgba(255,255,255,.4);
+      flex-shrink: 0;
+      min-height: 0;
+    }
+    .project-path-bar.show { display: flex; }
+    .agent-strip {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--stroke);
+      background: rgba(255,255,255,.55);
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+    .agent-strip-head {
+      width: 100%; display: flex; align-items: baseline; gap: 10px;
+      font-size: 12px;
+    }
+    .agent-strip-head strong { font-size: 13px; color: var(--text); }
+    .agent-strip-head .sub { color: var(--text-2); }
+    .agent-strip[hidden] { display: none !important; }
+    .agent-seat {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+      padding: 6px 10px; border-radius: 8px;
+      border: 1px solid var(--stroke); background: #fff;
+      min-width: 240px; flex: 1 1 280px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .agent-seat .seat-title { font-weight: 600; color: var(--text); }
+    .agent-seat .seat-desc { color: var(--text-2); font-size: 11px; }
+    .seat-occupant {
+      width: 52px; height: 52px; flex-shrink: 0;
+      border-radius: 10px;
+      background: rgba(0,0,0,.04);
+      display: grid; place-items: center;
+    }
+    .seat-occupant .occ-art { width: 46px; height: 46px; display: block; }
+    .occ-body, .occ-prop { opacity: 0; transform: translateY(7px); }
+    .occ-chair { opacity: .55; }
+    .agent-seat.seated {
+      border-color: rgba(15,123,15,.45);
+      background: linear-gradient(180deg, #f3fff3, #fff);
+      box-shadow: 0 0 0 2px rgba(15,123,15,.12);
+    }
+    .agent-seat.seated .seat-occupant {
+      background: rgba(15,123,15,.1);
+      animation: seat-glow 1.6s ease-in-out infinite;
+    }
+    .agent-seat.seated .occ-chair { opacity: 1; }
+    .agent-seat.seated .occ-body {
+      opacity: 1; transform: none;
+      animation: sit-down .35s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .agent-seat.seated .occ-prop {
+      opacity: 1; transform: none;
+      animation: prop-pop .45s .12s cubic-bezier(.2,1.2,.3,1) both;
+    }
+    @keyframes sit-down {
+      from { opacity: 0; transform: translateY(8px) scale(.92); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes prop-pop {
+      from { opacity: 0; transform: translateY(4px) scale(.6); }
+      70% { transform: scale(1.12); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes seat-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(15,123,15,.0); }
+      50% { box-shadow: 0 0 0 4px rgba(15,123,15,.16); }
+    }
+    .tab-sits { display: inline-flex; gap: 3px; margin-left: 4px; }
+    .tab-sit {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(0,0,0,.15); display: inline-block;
+    }
+    .tab-sit.on { background: #0f7b0f; box-shadow: 0 0 0 2px rgba(15,123,15,.2); }
+    .seat-code {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 11px; color: var(--text);
+      background: rgba(0,0,0,.04); padding: 2px 6px; border-radius: 4px;
+      max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .seat-badge {
+      margin-left: auto; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    }
+    .seat-badge.on { background: rgba(15,123,15,.12); color: #0f7b0f; }
+    .seat-badge.off { background: rgba(0,0,0,.06); color: var(--text-2); }
+    .seat-badge.live { background: #0f7b0f; color: #fff; }
+    .seat-face {
+      width: 46px; height: 46px; border-radius: 11px;
+      display: none; place-items: center;
+      font-weight: 700; font-size: 14px; letter-spacing: .02em;
+      color: #fff; user-select: none;
+    }
+    .agent-seat.seated .seat-face { display: grid; }
+    .agent-seat.seated .occ-art { display: none; }
+    .seat-face.known-cursor { background: #111; }
+    .seat-face.known-grok { background: #111; color: #f4c430; }
+    .seat-face.known-codex { background: #10a37f; }
+    .seat-face.known-kimi { background: #5b3cc4; }
+    .seat-face.known-antigravity { background: #1a73e8; }
+    .seat-face.known-claude { background: #d97706; }
+    .seat-face.known-windsurf { background: #0ea5e9; }
+    .seat-face.known-vscode { background: #0078d4; }
+    .seat-face.known-trae { background: #111; }
+    .seat-face.known-cline { background: #0f766e; }
+    .seat-face.known-continue { background: #4f46e5; }
+    .seat-face.known-zed { background: #1463ff; }
+    .agent-seat .seat-actions { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+    .project-path-bar .path-label { flex-shrink: 0; opacity: .85; }
+    .project-path-bar .path-text {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: var(--text);
+    }
+    .empty-projects-banner {
+      position: static; margin: 12px 16px 0; max-width: 520px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(0,95,184,.35);
+      border-radius: 8px; background: rgba(255,255,255,.96);
+      color: var(--text); font-size: 13px; line-height: 1.5;
+    }
+    .empty-projects-banner[hidden] { display: none !important; }
+    .empty-projects-banner strong { color: var(--brand); }
+    .empty-projects-banner .sub { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,.9); color: #fff; padding: 8px 14px;
+      border-radius: 8px; font-size: 12px; z-index: 300; opacity: 0;
+      pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+    .loading-banner {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.65); color: #fff; font-size: 11px;
+      padding: 4px 10px; border-radius: 12px; z-index: 15;
+      display: none;
+    }
+    .loading-banner.show { display: block; }
+
+    /* LOCKED: 仅顶栏 Tabs 切换项目 */
+    .project-tabs { display: flex !important; }
+    .dropdown-wrap { display: none !important; }
+    .conv-rail { display: none !important; }
+  </style>
+</head>
+<body class="mode-tabs shell-native" data-shell="native">
+  <div class="app window" role="application" aria-label="需求引擎">
+    <div class="titlebar" id="titlebar" title="拖动移动窗口">
+      <div class="app-glyph" aria-hidden="true"></div>
+      <div class="app-name">需求引擎</div>
+      <div class="caption">
+        <button type="button" id="win-min" title="最小化" aria-label="最小化">─</button>
+        <button type="button" id="win-max" title="最大化" aria-label="最大化">□</button>
+        <button type="button" id="win-quit" class="win-quit" title="退出程序（结束进程）" aria-label="退出程序">退出</button>
+        <button type="button" id="win-close" class="win-close" title="关闭到托盘（进程还在）" aria-label="关闭到托盘">✕</button>
+      </div>
+    </div>
+
+    <div class="cfg-strip" id="cfg-strip">
+      <strong>引擎连接</strong>
+      <div class="cfg-note" id="cfg-note">
+        仅连接失败时需要。桌面自动注入 admin 令牌（角色门禁，不是 AI 密钥，也不是「上传账号」）。
+      </div>
+      <label for="cfg-base">引擎地址</label>
+      <input id="cfg-base" type="text" placeholder="http://127.0.0.1:7420/v1" spellcheck="false" />
+      <label for="cfg-token">管理员令牌</label>
+      <input id="cfg-token" type="password" placeholder="data/tokens.txt 中 admin= 后的值" spellcheck="false" />
+      <button type="button" class="btn-native primary" id="cfg-save">保存并连接</button>
+      <button type="button" class="btn-native" id="cfg-hide">收起</button>
+      <div class="err-msg" id="cfg-err"></div>
+    </div>
+
+    <div class="project-tabs" id="project-tabs"></div>
+    <div class="project-path-bar" id="project-path-bar" aria-live="polite">
+      <span class="path-label">本机文件夹</span>
+      <span class="path-text" id="project-path-text" title=""></span>
+    </div>
+
+    <div class="agent-strip" id="agent-strip" hidden>
+      <div class="agent-strip-head">
+        <strong>接入状态</strong>
+        <span class="sub" id="agent-strip-hint">MCP 握手成功后座位会变成「已接入」。复制接入包不算接入。</span>
+      </div>
+      <div class="agent-seat" data-seat="discuss" id="seat-card-discuss">
+        <div class="seat-occupant" id="occ-discuss" title="空位" aria-hidden="true">
+          <div class="seat-face" id="face-discuss"></div>
+          <svg class="occ-art" viewBox="0 0 48 48">
+            <g class="occ-chair" fill="none" stroke="#6b6b6b" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M12 30 v10 M36 30 v10"/>
+              <path d="M10 30 h28"/>
+              <path d="M14 30 v-8 h20 v8"/>
+            </g>
+            <g class="occ-body">
+              <circle cx="24" cy="14" r="5" fill="#2b6cb0"/>
+              <path d="M16 30 v-6 c0-4 4-6 8-6 s8 2 8 6 v6" fill="#4a90d9"/>
+            </g>
+            <g class="occ-prop">
+              <ellipse cx="36" cy="10" rx="8" ry="6" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+              <circle cx="33" cy="10" r="1" fill="#2b6cb0"/>
+              <circle cx="36" cy="10" r="1" fill="#2b6cb0"/>
+              <circle cx="39" cy="10" r="1" fill="#2b6cb0"/>
+            </g>
+          </svg>
+        </div>
+        <span class="seat-title">讨论侧</span>
+        <span class="seat-desc">只写需求，不实现</span>
+        <span class="seat-badge off" id="badge-discuss">空位</span>
+        <code class="seat-code" id="code-discuss" title="">—</code>
+        <div class="seat-actions">
+          <button type="button" class="btn-native primary" id="btn-copy-discuss" title="复制匹配码 + 接入 Prompt">复制讨论侧接入</button>
+          <button type="button" class="btn-native" id="btn-rotate-discuss" title="旧码立刻失效">作废重发</button>
+        </div>
+      </div>
+      <div class="agent-seat" data-seat="build" id="seat-card-build">
+        <div class="seat-occupant" id="occ-build" title="空位" aria-hidden="true">
+          <div class="seat-face" id="face-build"></div>
+          <svg class="occ-art" viewBox="0 0 48 48">
+            <g class="occ-chair" fill="none" stroke="#6b6b6b" stroke-width="1.8" stroke-linejoin="round">
+              <path d="M12 30 v10 M36 30 v10"/>
+              <path d="M10 30 h28"/>
+              <path d="M14 30 v-8 h20 v8"/>
+            </g>
+            <g class="occ-body">
+              <circle cx="24" cy="14" r="5" fill="#c45c12"/>
+              <path d="M16 30 v-6 c0-4 4-6 8-6 s8 2 8 6 v6" fill="#e07a2f"/>
+            </g>
+            <g class="occ-prop">
+              <path d="M34 8 l6 6 -2 2 -2-2 -3 3 2 2 -2 2 -2-2 -3 3 -2-2 3-3 -2-2 2-2 2 2 3-3 -2-2 z" fill="#c45c12"/>
+            </g>
+          </svg>
+        </div>
+        <span class="seat-title">实现侧</span>
+        <span class="seat-desc">领卡、写代码、交审</span>
+        <span class="seat-badge off" id="badge-build">空位</span>
+        <code class="seat-code" id="code-build" title="">—</code>
+        <div class="seat-actions">
+          <button type="button" class="btn-native primary" id="btn-copy-build" title="复制匹配码 + 接入 Prompt">复制实现侧接入</button>
+          <button type="button" class="btn-native" id="btn-rotate-build" title="旧码立刻失效">作废重发</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-header">
+      <h1>看板</h1>
+
+      <div class="dropdown-wrap" id="dd-wrap">
+        <button type="button" class="dd-btn" id="dd-btn">
+          <span class="dot" id="dd-dot"></span>
+          <span id="dd-label">—</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="dd-menu" id="dd-menu"></div>
+      </div>
+
+      <input class="search-field" type="search" placeholder="搜索当前项目…" id="search" autocomplete="off" />
+      <div class="spacer"></div>
+      <button type="button" class="btn-native primary" id="btn-new-req" title="在当前项目新建需求">＋ 新建需求</button>
+      <button type="button" class="btn-native danger" id="btn-archive-project" title="归档当前项目（看板中隐藏，非删盘）" hidden>归档项目</button>
+      <button type="button" class="btn-native" id="btn-settings" title="仅连接失败时：引擎地址与管理员令牌">连接</button>
+      <button type="button" class="btn-native" id="btn-refresh" title="立即刷新">刷新</button>
+    </div>
+
+    <div class="shell">
+      <aside class="conv-rail" id="conv-rail">
+        <div class="conv-head">
+          <h2>项目</h2>
+          <button type="button" class="conv-new" id="conv-new" title="新建项目">+</button>
+        </div>
+        <input class="conv-search" id="conv-search" placeholder="搜索项目…" />
+        <div class="conv-list" id="conv-list"></div>
+      </aside>
+
+      <nav class="nav-filters" id="nav-filters" aria-label="筛选与统计">
+        <div class="nav-section">筛选</div>
+        <button class="nav-item active" type="button" data-f="all">全部 <span class="badge" id="badge-all">0</span></button>
+        <button class="nav-item" type="button" data-f="p0">仅 P0 <span class="badge" id="badge-p0">0</span></button>
+        <button class="nav-item" type="button" data-f="blocked">阻塞 <span class="badge" id="badge-blocked">0</span></button>
+        <div class="nav-section">本项目统计 · 点按跳转</div>
+        <div class="stats" id="nav-stats">
+          <button type="button" class="stat" data-f="todo" title="只看待办列">
+            <div class="n" id="st-todo">0</div><div class="l">需求</div>
+          </button>
+          <button type="button" class="stat" data-f="doing" title="只看进行中">
+            <div class="n" id="st-doing">0</div><div class="l">进行中</div>
+          </button>
+          <button type="button" class="stat" data-f="review" title="只看审核中">
+            <div class="n" id="st-review">0</div><div class="l">审核</div>
+          </button>
+          <button type="button" class="stat" data-f="done" title="只看已完成">
+            <div class="n" id="st-done">0</div><div class="l">完成</div>
+          </button>
+        </div>
+        <div class="hint" id="mode-hint">
+          人：提需求 / 审核完成 / 驳回（须原因）。领取·交审·释放由实现 Agent（MCP）完成。
+        </div>
+      </nav>
+
+      <div class="main">
+        <div class="loading-banner" id="loading-banner">同步中…</div>
+        <div class="empty-projects-banner" id="empty-projects-banner" hidden>
+          <div>还没有项目</div>
+          <div class="sub">点「＋ 新建项目」，填写名称，并可选择绑定本机文件夹作为工作区路径。</div>
+        </div>
+        <div class="board" id="board"></div>
+        <aside class="drawer" id="drawer" aria-hidden="true">
+          <div class="drawer-inner">
+            <div class="drawer-h">
+              <div class="sub" id="d-id">REQ</div>
+              <h2 id="d-title">—</h2>
+              <button type="button" class="btn-icon" id="btn-close-x" title="关闭 (Esc)">✕</button>
+            </div>
+            <div class="drawer-b" id="d-body"></div>
+            <div class="drawer-f">
+              <button type="button" class="btn-native" id="btn-copy">复制 ID</button>
+              <!-- 人侧：只审/取消。领取·交审·释放仅 Agent（MCP/HTTP foreman），不在 UI 暴露 -->
+              <button type="button" class="btn-native primary" id="btn-complete" disabled title="审核通过 → done">确认完成</button>
+              <button type="button" class="btn-native danger" id="btn-reject" disabled title="审核不通过 → todo（须填原因）">驳回</button>
+              <button type="button" class="btn-native danger" id="btn-cancel" disabled title="软取消">取消需求</button>
+              <button type="button" class="btn-native" id="btn-close">关闭</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span class="dot" id="conn-dot"></span>
+      <span id="conn-label">未连接</span>
+      <span id="status-project">项目：—</span>
+      <span style="margin-left:auto" id="status-mode">本地引擎 · 3s 轮询</span>
+      <button type="button" class="linkish status-cfg-label" id="status-cfg">高级</button>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="new-modal">
+    <div class="modal">
+      <div class="modal-h">新建需求 · <span id="new-modal-proj"></span></div>
+      <div class="modal-b">
+        <div>
+          <label for="new-title">标题</label>
+          <input id="new-title" type="text" placeholder="一句话说清要做什么" />
+        </div>
+        <div>
+          <label for="new-desc">描述（可选）</label>
+          <textarea id="new-desc" placeholder="补充背景、验收要点…"></textarea>
+        </div>
+        <div>
+          <label for="new-prio">优先级</label>
+          <select id="new-prio">
+            <option value="P0">P0 / high</option>
+            <option value="P1" selected>P1</option>
+            <option value="P2">P2 / medium</option>
+            <option value="P3">P3 / low</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn-native" id="new-cancel">取消</button>
+        <button type="button" class="btn-native primary" id="new-submit">创建到待办</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="proj-modal">
+    <div class="modal modal-project" role="dialog" aria-labelledby="proj-modal-title">
+      <div class="modal-h" id="proj-modal-title">新建项目</div>
+      <div class="modal-b">
+        <div>
+          <label for="proj-name">名称 <span style="color:var(--danger)">*</span></label>
+          <input id="proj-name" type="text" placeholder="例如：支付网关 / my-repo" autocomplete="off" />
+        </div>
+        <div>
+          <label for="proj-path">绑定本机文件夹（可选）</label>
+          <div class="path-row">
+            <input id="proj-path" type="text" placeholder="C:\Users\...\my-repo" spellcheck="false" autocomplete="off" />
+            <button type="button" class="btn-native" id="proj-path-pick" title="选择本机文件夹">浏览文件夹…</button>
+          </div>
+          <div class="hint-line" id="proj-path-hint">
+            桌面版用系统文件夹对话框（绝对路径）。浏览器里「选文件夹」常被伪装成上传，读不到绝对路径 — 请直接粘贴路径。
+          </div>
+          <!-- Fallback only when not desktop: browser cannot expose absolute path (shows as “upload”) -->
+          <input type="file" id="proj-folder-picker" webkitdirectory directory multiple style="display:none" tabindex="-1" aria-hidden="true" />
+        </div>
+        <div>
+          <label for="proj-blurb">简介（可选）</label>
+          <input id="proj-blurb" type="text" placeholder="一句话说明，可留空" autocomplete="off" />
+        </div>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn-native" id="proj-cancel">取消</button>
+        <button type="button" class="btn-native primary" id="proj-submit">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal modal-confirm">
+      <div class="modal-h" id="confirm-title">确认</div>
+      <div class="modal-b">
+        <p id="confirm-message"></p>
+        <p class="warn" id="confirm-warn" hidden></p>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn-native" id="confirm-cancel">取消</button>
+        <button type="button" class="btn-native danger" id="confirm-ok">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="reject-modal" role="dialog" aria-modal="true" aria-labelledby="reject-title">
+    <div class="modal modal-confirm">
+      <div class="modal-h" id="reject-title">驳回需求</div>
+      <div class="modal-b">
+        <p>请填写驳回原因（必填）。需求将回到待办（todo），实现侧 Agent 可再次领取。</p>
+        <label for="reject-reason">驳回原因</label>
+        <textarea id="reject-reason" placeholder="例如：验收标准未满足 / 边界错误 / 需要补充测试…" rows="4"></textarea>
+        <p class="warn" id="reject-err" hidden>必须填写驳回原因</p>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn-native" id="reject-cancel">取消</button>
+        <button type="button" class="btn-native danger" id="reject-ok">确认驳回</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ========== Config / API ========== */
+    const LS_BASE = "req_engine_base";
+    const LS_TOKEN = "req_engine_token";
+    const DEFAULT_BASE = "http://127.0.0.1:7420/v1";
+    const POLL_MS = 3000;
+
+    function readBootstrap() {
+      const b = window.__REQ_BOOTSTRAP__;
+      if (b && typeof b === "object") {
+        try {
+          if (b.base) localStorage.setItem(LS_BASE, String(b.base).replace(/\/+$/, ""));
+          if (b.token) localStorage.setItem(LS_TOKEN, String(b.token));
+        } catch (_) { /* ignore */ }
+        return {
+          base: b.base ? String(b.base).replace(/\/+$/, "") : null,
+          token: b.token ? String(b.token) : null,
+        };
+      }
+      // meta fallback: <meta name="req-bootstrap" content='{"base":"...","token":"..."}'>
+      const meta = document.querySelector('meta[name="req-bootstrap"]');
+      if (meta?.content) {
+        try {
+          const j = JSON.parse(meta.content);
+          return {
+            base: j.base ? String(j.base).replace(/\/+$/, "") : null,
+            token: j.token ? String(j.token) : null,
+          };
+        } catch (_) { /* ignore */ }
+      }
+      return { base: null, token: null };
+    }
+    const boot0 = readBootstrap();
+    let apiBase = (boot0.base || localStorage.getItem(LS_BASE) || DEFAULT_BASE).replace(/\/+$/, "");
+    let apiToken = boot0.token || localStorage.getItem(LS_TOKEN) || "";
+
+    const COLORS = ["#0078d4", "#8764b8", "#0e7a0d", "#c239b3", "#ca5010", "#038387"];
+    const COLS = [
+      { title: "需求", statuses: ["todo"] },
+      { title: "进行中", statuses: ["in_progress", "blocked", "scheduled"] },
+      { title: "审核中", statuses: ["review"] },
+      { title: "已完成", statuses: ["done"] },
+    ];
+
+    /** @type {{id:string,name:string,color:string,blurb:string,local_path:string,tasks:any[]}[]} */
+    let PROJECTS = [];
+    let ARCHIVED = [];
+    let projectId = null;
+    let filter = "all";
+    let q = "";
+    let selected = null;
+    let convQ = "";
+    let pollTimer = null;
+    let loading = false;
+    let connOk = false;
+    let lastError = "";
+
+    const esc = (s) =>
+      String(s ?? "").replace(/[&<>"]/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+      );
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    /** In-app centered confirm (replaces window.confirm which sticks to top). */
+    function appConfirm({ title, message, warn, okLabel, danger }) {
+      return new Promise((resolve) => {
+        const mask = document.getElementById("confirm-modal");
+        document.getElementById("confirm-title").textContent = title || "确认";
+        document.getElementById("confirm-message").textContent = message || "";
+        const w = document.getElementById("confirm-warn");
+        if (warn) {
+          w.hidden = false;
+          w.textContent = warn;
+        } else {
+          w.hidden = true;
+          w.textContent = "";
+        }
+        const okBtn = document.getElementById("confirm-ok");
+        okBtn.textContent = okLabel || "确认";
+        okBtn.classList.toggle("danger", danger !== false);
+        okBtn.classList.toggle("primary", danger === false);
+        const finish = (v) => {
+          mask.classList.remove("open");
+          okBtn.onclick = null;
+          document.getElementById("confirm-cancel").onclick = null;
+          resolve(v);
+        };
+        okBtn.onclick = () => finish(true);
+        document.getElementById("confirm-cancel").onclick = () => finish(false);
+        mask.onclick = (e) => {
+          if (e.target === mask) finish(false);
+        };
+        mask.classList.add("open");
+        setTimeout(() => okBtn.focus(), 30);
+      });
+    }
+
+    function setLoading(on) {
+      loading = on;
+      document.getElementById("loading-banner").classList.toggle("show", on);
+    }
+
+    function isDesktopShell() {
+      return document.body?.dataset?.shell === "native" ||
+        document.documentElement?.getAttribute("data-shell") === "native" ||
+        document.body?.classList?.contains("shell-native");
+    }
+
+    function setConn(ok, label) {
+      connOk = ok;
+      const dot = document.getElementById("conn-dot");
+      const lab = document.getElementById("conn-label");
+      dot.classList.toggle("ok", !!ok);
+      dot.classList.toggle("err", !ok && !!apiToken);
+      dot.classList.toggle("warn", !ok && !apiToken);
+      lab.textContent = label || (ok ? "引擎已连接" : "未连接");
+      document.body.classList.toggle("conn-ok", !!ok);
+      if (ok) showConfig(false);
+    }
+
+    /** Human UI verbs only (admin review / cancel). Agent verbs stay on MCP. */
+    function setVerbButtons(t) {
+      const st = t?.apiStatus || "";
+      const set = (id, on) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !on;
+      };
+      set("btn-complete", st === "review");
+      set("btn-reject", st === "review");
+      set("btn-cancel", st === "todo" || st === "in_progress" || st === "review");
+    }
+
+    function promptRejectReason() {
+      return new Promise((resolve) => {
+        const mask = document.getElementById("reject-modal");
+        const ta = document.getElementById("reject-reason");
+        const err = document.getElementById("reject-err");
+        ta.value = "";
+        err.hidden = true;
+        const finish = (v) => {
+          mask.classList.remove("open");
+          document.getElementById("reject-ok").onclick = null;
+          document.getElementById("reject-cancel").onclick = null;
+          mask.onclick = null;
+          resolve(v);
+        };
+        document.getElementById("reject-ok").onclick = () => {
+          const r = ta.value.trim();
+          if (!r) {
+            err.hidden = false;
+            ta.focus();
+            return;
+          }
+          finish(r);
+        };
+        document.getElementById("reject-cancel").onclick = () => finish(null);
+        mask.onclick = (e) => {
+          if (e.target === mask) finish(null);
+        };
+        mask.classList.add("open");
+        setTimeout(() => ta.focus(), 30);
+      });
+    }
+
+    function asArray(v) {
+      if (Array.isArray(v)) return v;
+      if (v == null) return [];
+      if (typeof v === "string") {
+        try {
+          const p = JSON.parse(v);
+          return Array.isArray(p) ? p : [];
+        } catch {
+          return v ? [v] : [];
+        }
+      }
+      return [];
+    }
+
+    /** Map API priority (high/medium/low or P0–P3) → UI P0–P3 */
+    function normalizePriority(p) {
+      const s = String(p || "medium").trim().toLowerCase();
+      if (s === "p0" || s === "critical" || s === "high" || s === "urgent") return "P0";
+      if (s === "p1") return "P1";
+      if (s === "p2" || s === "medium" || s === "normal") return "P2";
+      if (s === "p3" || s === "low") return "P3";
+      if (/^p[0-3]$/.test(s)) return s.toUpperCase();
+      return "P2";
+    }
+
+    /** UI P0–P3 → API-friendly priority string */
+    function priorityToApi(p) {
+      const n = normalizePriority(p);
+      if (n === "P0") return "high";
+      if (n === "P1") return "P1";
+      if (n === "P2") return "medium";
+      if (n === "P3") return "low";
+      return "medium";
+    }
+
+    function formatRelative(iso) {
+      if (!iso) return "—";
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return String(iso);
+      const sec = Math.round((Date.now() - t) / 1000);
+      if (sec < 45) return "刚刚";
+      if (sec < 3600) return Math.floor(sec / 60) + " 分钟前";
+      if (sec < 86400) return Math.floor(sec / 3600) + " 小时前";
+      if (sec < 86400 * 7) return Math.floor(sec / 86400) + " 天前";
+      return new Date(iso).toLocaleString();
+    }
+
+    function formatEventTime(iso) {
+      if (!iso) return "—";
+      try {
+        return new Date(iso).toLocaleString();
+      } catch {
+        return String(iso);
+      }
+    }
+
+    /**
+     * Board column status:
+     * - API has no "blocked"/"scheduled"; blocked_reason on in_progress → UI "blocked"
+     * - cancelled hidden from board
+     */
+    function mapRequirement(r) {
+      const apiStatus = r.status;
+      let boardStatus = apiStatus;
+      if (apiStatus === "in_progress" && r.blocked_reason) boardStatus = "blocked";
+      return {
+        id: r.id,
+        title: r.title,
+        description: r.description || "",
+        priority: normalizePriority(r.priority),
+        status: boardStatus,
+        apiStatus,
+        scope: asArray(r.scope),
+        deps: asArray(r.dependencies),
+        ac: asArray(r.acceptance_criteria),
+        progress: r.progress_summary || "",
+        blocked_reason: r.blocked_reason || null,
+        claimed_by: r.claimed_by || null,
+        external: r.external_run_id || null,
+        updated: formatRelative(r.updated_at),
+        updated_at: r.updated_at,
+        created_by: r.created_by || "",
+        timeline: [],
+      };
+    }
+
+    function mapEvents(events) {
+      return (events || []).map((e) => ({
+        t: formatEventTime(e.created_at),
+        actor: e.actor || "—",
+        text: e.message || e.kind || "",
+      }));
+    }
+
+    async function api(path, opts = {}) {
+      const base = apiBase.replace(/\/+$/, "");
+      const url = path.startsWith("http") ? path : base + path;
+      const headers = Object.assign(
+        { Accept: "application/json" },
+        opts.headers || {}
+      );
+      if (apiToken) headers["Authorization"] = "Bearer " + apiToken;
+      if (opts.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+      let res;
+      try {
+        res = await fetch(url, {
+          method: opts.method || "GET",
+          headers,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+      } catch (e) {
+        const err = new Error(
+          "无法连接本地引擎（" + (e.message || "network") + "）。桌面模式应已内嵌服务；浏览器调试请先 req-engine serve。"
+        );
+        err.network = true;
+        throw err;
+      }
+      if (res.status === 204) return null;
+      const text = await res.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      }
+      if (!res.ok) {
+        const msg =
+          (data && (data.message || data.error || data.detail)) ||
+          res.status + " " + res.statusText;
+        const err = new Error(msg);
+        err.status = res.status;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function project() {
+      return (
+        PROJECTS.find((p) => p.id === projectId) ||
+        PROJECTS[0] ||
+        { id: "", name: "—", color: "#888", blurb: "", local_path: "", tasks: [] }
+      );
+    }
+    function tasks() {
+      return project().tasks || [];
+    }
+
+    function countOf(list, pred) {
+      return list.filter(pred).length;
+    }
+
+    /* ========== Config UI ========== */
+    function showConfig(open) {
+      const strip = document.getElementById("cfg-strip");
+      strip.classList.toggle("open", open !== false);
+      if (open !== false) {
+        document.getElementById("cfg-base").value = apiBase;
+        document.getElementById("cfg-token").value = apiToken;
+        document.getElementById("cfg-err").textContent = lastError || "";
+      }
+    }
+
+    function saveConfig() {
+      const base = document.getElementById("cfg-base").value.trim().replace(/\/+$/, "") || DEFAULT_BASE;
+      const token = document.getElementById("cfg-token").value.trim();
+      apiBase = base;
+      apiToken = token;
+      localStorage.setItem(LS_BASE, apiBase);
+      if (token) localStorage.setItem(LS_TOKEN, token);
+      else localStorage.removeItem(LS_TOKEN);
+      document.getElementById("cfg-err").textContent = "";
+      toast("已保存配置");
+      boot(true);
+    }
+
+    /* ========== Data load ========== */
+    async function loadProjects() {
+      let list = [];
+      try {
+        list = await api("/projects?include_archived=true");
+      } catch {
+        list = await api("/projects");
+      }
+      const prev = new Map(PROJECTS.map((p) => [p.id, p]));
+      const mapped = (list || []).map((p, i) => {
+        const old = prev.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          color: p.color || COLORS[i % COLORS.length],
+          blurb: p.blurb || "",
+          // Prefer API; if backend not ready yet, keep session-known path
+          local_path: p.local_path || p.localPath || old?.local_path || "",
+          discuss_agent_configured: !!(p.discuss_agent_configured || p.discuss_agent_at),
+          build_agent_configured: !!(p.build_agent_configured || p.build_agent_at),
+          discuss_agent_at: p.discuss_agent_at || null,
+          build_agent_at: p.build_agent_at || null,
+          discuss_seated: !!p.discuss_seated,
+          build_seated: !!p.build_seated,
+          discuss_occupant: p.discuss_occupant || null,
+          build_occupant: p.build_occupant || null,
+          tasks: old?.tasks || [],
+          archived_at: p.archived_at || null,
+        };
+      });
+      PROJECTS = mapped.filter((p) => !p.archived_at);
+      ARCHIVED = mapped.filter((p) => p.archived_at);
+      if (!projectId || !PROJECTS.some((p) => p.id === projectId)) {
+        projectId = PROJECTS[0]?.id || null;
+      }
+    }
+
+    async function loadRequirements(pid, { silent } = {}) {
+      if (!pid) return;
+      if (!silent) setLoading(true);
+      try {
+        const list = await api("/projects/" + encodeURIComponent(pid) + "/requirements");
+        const prev = (PROJECTS.find((x) => x.id === pid)?.tasks) || [];
+        const prevById = Object.fromEntries(prev.map((t) => [t.id, t]));
+        const mapped = (list || [])
+          .map(mapRequirement)
+          .filter((t) => t.apiStatus !== "cancelled")
+          .map((t) => {
+            const old = prevById[t.id];
+            if (old?.timeline?.length) t.timeline = old.timeline;
+            return t;
+          });
+        const p = PROJECTS.find((x) => x.id === pid);
+        if (p) p.tasks = mapped;
+        // Preserve timeline cache for open drawer if same ids
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    }
+
+    async function refreshAll({ silent } = {}) {
+      if (!apiToken) {
+        setConn(false, "需要 Token");
+        if (!silent) showConfig(true);
+        return;
+      }
+      try {
+        try {
+          await api("/health");
+        } catch {
+          /* health failure still try projects */
+        }
+        await loadProjects();
+        if (projectId) await loadRequirements(projectId, { silent: true });
+        setConn(true, isDesktopShell() ? "本地引擎已连接" : "API 已连接");
+        lastError = "";
+        renderChrome();
+        render();
+        if (selected) {
+          const t = tasks().find((x) => x.id === selected);
+          if (t) fillDrawer(t, { keepTimeline: true });
+          else closeDrawer();
+        }
+      } catch (e) {
+        lastError = e.message || String(e);
+        setConn(false, e.status === 401 || e.status === 403 ? "鉴权失败" : "连接失败");
+        if (!silent) {
+          document.getElementById("cfg-err").textContent = lastError;
+          showConfig(true);
+          toast(lastError);
+        }
+        renderChrome();
+        render();
+      }
+    }
+
+    async function boot(fromSave) {
+      // Re-read bootstrap each boot (desktop injects before scripts)
+      const b = readBootstrap();
+      if (b.base) apiBase = b.base;
+      if (b.token) apiToken = b.token;
+      document.getElementById("cfg-base").value = apiBase;
+      document.getElementById("cfg-token").value = apiToken || "";
+
+      if (!apiToken) {
+        setConn(false, "需要 Token");
+        showConfig(true);
+        PROJECTS = [];
+        renderChrome();
+        render();
+        if (!fromSave) {
+          document.getElementById("cfg-err").textContent = isDesktopShell()
+            ? "请粘贴 admin token（req-engine data/tokens.txt 中 admin= 后面的值）"
+            : "浏览器调试：粘贴 data/tokens.txt 中 admin= 后的值（角色门禁，不是 AI 密钥）。";
+        }
+        return;
+      }
+      showConfig(false);
+      await refreshAll({ silent: false });
+      startPoll();
+    }
+
+    function startPoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => {
+        if (document.hidden) return;
+        if (!apiToken) return;
+        refreshAll({ silent: true });
+      }, POLL_MS);
+    }
+
+    /* ========== Chrome / board ========== */
+    function selectProject(id) {
+      if (!PROJECTS.some((p) => p.id === id)) return;
+      projectId = id;
+      selected = null;
+      closeDrawer();
+      closeDropdown();
+      renderChrome();
+      render();
+      loadRequirements(id).then(() => {
+        renderChrome();
+        render();
+      }).catch((e) => toast(e.message || String(e)));
+    }
+
+    function projectPathOf(p) {
+      return String(p?.local_path || "").trim();
+    }
+
+    function setupKit() {
+      const b = window.__REQ_BOOTSTRAP__ || {};
+      return {
+        base: (b.base || apiBase || DEFAULT_BASE).replace(/\/+$/, ""),
+        home: b.home || "",
+        exe: b.exe || "",
+        adminToken: b.token || apiToken || "",
+      };
+    }
+
+    let PAIR_CODES = null;
+
+    function shortCode(code) {
+      const s = String(code || "");
+      if (s.length <= 18) return s || "—";
+      return s.slice(0, 10) + "…" + s.slice(-4);
+    }
+
+    function paintSeatCode(seat, code, seated, occupant) {
+      const el = document.getElementById(seat === "discuss" ? "code-discuss" : "code-build");
+      const badge = document.getElementById(seat === "discuss" ? "badge-discuss" : "badge-build");
+      const card = document.getElementById(seat === "discuss" ? "seat-card-discuss" : "seat-card-build");
+      const occ = document.getElementById(seat === "discuss" ? "occ-discuss" : "occ-build");
+      const face = document.getElementById(seat === "discuss" ? "face-discuss" : "face-build");
+      if (el) {
+        el.textContent = code ? shortCode(code) : "—";
+        el.title = code || "";
+      }
+      const live = !!seated;
+      if (card) card.classList.toggle("seated", live);
+      const who = occupant && occupant.label ? occupant.label : "MCP";
+      if (occ) {
+        occ.title = live
+          ? (occupant ? ("已接入 · " + who + (occupant.raw_name ? " (" + occupant.raw_name + ")" : "")) : "已接入 — MCP 进程在线")
+          : (code ? "已发卡，还没人坐" : "空位");
+      }
+      if (face) {
+        face.className = "seat-face";
+        face.textContent = "";
+        face.style.background = "";
+        if (live && occupant) {
+          face.textContent = occupant.initials || "?";
+          if (occupant.known && occupant.key) face.classList.add("known-" + occupant.key);
+          else face.style.background = "hsl(" + (occupant.hue || 210) + " 52% 38%)";
+        }
+      }
+      if (badge) {
+        badge.textContent = live ? ("已接入 · " + who) : (code ? "已发卡" : "空位");
+        badge.classList.toggle("live", live);
+        badge.classList.toggle("on", !live && !!code);
+        badge.classList.toggle("off", !live && !code);
+      }
+    }
+
+    function updateAgentStrip() {
+      const strip = document.getElementById("agent-strip");
+      if (!strip) return;
+      if (!projectId || !PROJECTS.length) {
+        strip.hidden = true;
+        PAIR_CODES = null;
+        return;
+      }
+      strip.hidden = false;
+      const p = project();
+      const discCode = PAIR_CODES && PAIR_CODES.projectId === projectId && PAIR_CODES.discuss
+        ? PAIR_CODES.discuss.code : "";
+      const buildCode = PAIR_CODES && PAIR_CODES.projectId === projectId && PAIR_CODES.build
+        ? PAIR_CODES.build.code : "";
+      paintSeatCode("discuss", discCode, !!(p && p.discuss_seated), p && p.discuss_occupant);
+      paintSeatCode("build", buildCode, !!(p && p.build_seated), p && p.build_occupant);
+      if (!PAIR_CODES || PAIR_CODES.projectId !== projectId) {
+        loadPairCodes();
+      }
+    }
+
+    async function loadPairCodes() {
+      if (!projectId) return;
+      const pid = projectId;
+      try {
+        const data = await api("/projects/" + encodeURIComponent(pid) + "/pair-codes");
+        if (projectId !== pid) return;
+        PAIR_CODES = {
+          projectId: pid,
+          discuss: data.discuss,
+          build: data.build,
+        };
+        const p = project();
+        paintSeatCode("discuss", data.discuss && data.discuss.code, !!(data.discuss && data.discuss.seated) || !!(p && p.discuss_seated), (data.discuss && data.discuss.occupant) || (p && p.discuss_occupant));
+        paintSeatCode("build", data.build && data.build.code, !!(data.build && data.build.seated) || !!(p && p.build_seated), (data.build && data.build.occupant) || (p && p.build_occupant));
+      } catch (e) {
+        if (projectId !== pid) return;
+        PAIR_CODES = { projectId: pid, discuss: null, build: null };
+        const p = project();
+        paintSeatCode("discuss", "", !!(p && p.discuss_seated), p && p.discuss_occupant);
+        paintSeatCode("build", "", !!(p && p.build_seated), p && p.build_occupant);
+        toast("读取匹配码失败: " + (e.message || e));
+      }
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+
+    async function copySeatPack(seat) {
+      if (!projectId) {
+        toast("请先选择一个项目");
+        return;
+      }
+      if (!PAIR_CODES || PAIR_CODES.projectId !== projectId) {
+        await loadPairCodes();
+      }
+      const pack = PAIR_CODES && PAIR_CODES[seat];
+      if (!pack || !pack.copy_text) {
+        toast("没有可复制的接入包，请先作废重发");
+        return;
+      }
+      try {
+        await copyText(pack.copy_text);
+        toast(seat === "discuss" ? "已复制讨论侧接入（码 + Prompt）" : "已复制实现侧接入（码 + Prompt）");
+      } catch (e) {
+        toast("复制失败: " + (e.message || e));
+      }
+    }
+
+    async function rotateSeat(seat) {
+      if (!projectId) {
+        toast("请先选择项目");
+        return;
+      }
+      const label = seat === "discuss" ? "讨论侧" : "实现侧";
+      if (!confirm("作废当前" + label + "匹配码？旧码立刻失效，已接上的 Session 要重新粘贴新接入包。")) {
+        return;
+      }
+      try {
+        const data = await api(
+          "/projects/" + encodeURIComponent(projectId) + "/pair-codes/" + seat + "/rotate",
+          { method: "POST" }
+        );
+        PAIR_CODES = {
+          projectId: projectId,
+          discuss: data.discuss,
+          build: data.build,
+        };
+        const p = project();
+        paintSeatCode("discuss", data.discuss && data.discuss.code, !!(data.discuss && data.discuss.seated) || !!(p && p.discuss_seated), (data.discuss && data.discuss.occupant) || (p && p.discuss_occupant));
+        paintSeatCode("build", data.build && data.build.code, !!(data.build && data.build.seated) || !!(p && p.build_seated), (data.build && data.build.occupant) || (p && p.build_occupant));
+        toast(label + "已换新码 — 再点复制接入");
+      } catch (e) {
+        toast("作废失败: " + (e.message || e));
+      }
+    }
+
+    function updatePathChrome(p) {
+      const path = projectPathOf(p);
+      const bar = document.getElementById("project-path-bar");
+      const text = document.getElementById("project-path-text");
+      const status = document.getElementById("status-project");
+      if (PROJECTS.length && p?.id) {
+        status.textContent = path
+          ? "项目：" + (p.name || "—") + " · " + path
+          : "项目：" + (p.name || "—");
+        status.title = path || p.name || "";
+      } else {
+        status.textContent = "项目：—";
+        status.title = "";
+      }
+      if (path && PROJECTS.length) {
+        bar.classList.add("show");
+        text.textContent = path;
+        text.title = path;
+      } else {
+        bar.classList.remove("show");
+        text.textContent = "";
+        text.title = "";
+      }
+      const emptyBanner = document.getElementById("empty-projects-banner");
+      if (emptyBanner) emptyBanner.hidden = PROJECTS.length > 0;
+    }
+
+    function renderChrome() {
+      const p = project();
+      updatePathChrome(p);
+      document.getElementById("dd-label").textContent = p.name || "—";
+      document.getElementById("dd-dot").style.background = p.color || "#888";
+      document.getElementById("new-modal-proj").textContent = p.name || "—";
+
+      const tabs = document.getElementById("project-tabs");
+      if (!PROJECTS.length) {
+        tabs.innerHTML = `
+          <span style="padding:8px 12px;color:var(--text-2);font-size:12px;align-self:center;line-height:1.35">
+            ${connOk
+              ? "还没有项目 — 点右侧「＋ 新建项目」"
+              : "尚未连接引擎"}
+          </span>
+          <button type="button" class="ptab-add-label" id="tab-add" title="新建项目">＋ 新建项目</button>`;
+      } else {
+        tabs.innerHTML =
+          PROJECTS.map((x) => {
+            const lp = projectPathOf(x);
+            const tip = lp ? esc(x.name) + " · " + esc(lp) : esc(x.name);
+            const sits = (x.discuss_seated || x.build_seated)
+              ? `<span class="tab-sits" title="${x.discuss_seated && x.build_seated ? "讨论侧和实现侧都已接入" : (x.discuss_seated ? "讨论侧已接入" : "实现侧已接入")}">
+                   <span class="tab-sit ${x.discuss_seated ? "on" : ""}"></span>
+                   <span class="tab-sit ${x.build_seated ? "on" : ""}"></span>
+                 </span>`
+              : "";
+            return `
+          <div class="ptab ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}" title="${tip}">
+            <button type="button" class="ptab-main" data-id="${esc(x.id)}">
+              <span class="dot" style="background:${esc(x.color)}"></span>
+              <span class="name">${esc(x.name)}</span>
+              ${sits}
+            </button>
+            <button type="button" class="ptab-close" data-archive="${esc(x.id)}" title="归档项目（从看板移除）" aria-label="归档 ${esc(x.name)}">×</button>
+          </div>`;
+          }).join("") +
+          `<button type="button" class="ptab-add-label" id="tab-add" title="新建项目（唯一入口）">＋ 新建项目</button>`;
+      }
+      tabs.querySelectorAll(".ptab-main[data-id]").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      tabs.querySelectorAll("[data-archive]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          archiveProject(el.getAttribute("data-archive"));
+        });
+      });
+      document.getElementById("tab-add")?.addEventListener("click", openProjectModal);
+
+      const archBtn = document.getElementById("btn-archive-project");
+      if (archBtn) {
+        archBtn.hidden = !projectId;
+      }
+
+      const menu = document.getElementById("dd-menu");
+      menu.innerHTML =
+        PROJECTS.map(
+          (x) => `
+        <button type="button" class="dd-item ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}" title="${esc(projectPathOf(x) || x.blurb || x.name)}">
+          <span class="dot" style="width:8px;height:8px;border-radius:50%;background:${esc(x.color)}"></span>
+          <span>${esc(x.name)}</span>
+          <span class="meta">${(x.tasks || []).length} 项</span>
+        </button>`
+        ).join("") +
+        `<div class="dd-sep"></div>
+         <button type="button" class="dd-item add" id="dd-add">＋ 新建项目</button>`;
+      menu.querySelectorAll(".dd-item[data-id]").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      document.getElementById("dd-add")?.addEventListener("click", openProjectModal);
+
+      const list = document.getElementById("conv-list");
+      const cq = convQ.trim().toLowerCase();
+      const items = PROJECTS.filter(
+        (x) =>
+          !cq ||
+          x.name.toLowerCase().includes(cq) ||
+          (x.blurb || "").toLowerCase().includes(cq) ||
+          (x.local_path || "").toLowerCase().includes(cq)
+      );
+      list.innerHTML = items
+        .map((x) => {
+          const active = (x.tasks || []).filter(
+            (t) => t.status === "in_progress" || t.status === "blocked"
+          ).length;
+          const row2 = projectPathOf(x)
+            ? projectPathOf(x)
+            : (x.blurb || "") + (x.blurb ? " · " : "") + (active ? active + " 进行中" : (x.tasks || []).length + " 任务");
+          return `
+          <button type="button" class="conv-item ${x.id === projectId ? "on" : ""}" data-id="${esc(x.id)}">
+            <div class="row1"><span class="dot" style="background:${esc(x.color)}"></span>${esc(x.name)}</div>
+            <div class="row2">${esc(row2)}</div>
+          </button>`;
+        })
+        .join("");
+      list.querySelectorAll(".conv-item").forEach((el) => {
+        el.addEventListener("click", () => selectProject(el.dataset.id));
+      });
+      if (ARCHIVED.length) {
+        list.insertAdjacentHTML(
+          "beforeend",
+          `<div class="dd-sep"></div>
+           <div class="row2" style="padding:8px 10px 4px;color:var(--text-2)">已归档 · 点按恢复</div>` +
+            ARCHIVED.map(
+              (x) => `
+          <button type="button" class="conv-item" data-unarchive="${esc(x.id)}">
+            <div class="row1">${esc(x.name)}</div>
+            <div class="row2">已归档</div>
+          </button>`
+            ).join("")
+        );
+        list.querySelectorAll("[data-unarchive]").forEach((el) => {
+          el.addEventListener("click", () => unarchiveProject(el.getAttribute("data-unarchive")));
+        });
+      }
+
+      const hint = document.getElementById("mode-hint");
+      if (hint) {
+        hint.textContent = !PROJECTS.length
+          ? "还没有项目 → 点「＋ 新建项目」并可选绑定本机文件夹。"
+          : "每项目两枚匹配码：复制讨论侧 / 实现侧接入包给对应 Session。";
+      }
+      updateAgentStrip();
+    }
+
+    function openProjectModal() {
+      if (!apiToken) {
+        showConfig(true);
+        toast("尚未鉴权，请检查高级配置中的 Token");
+        return;
+      }
+      if (!connOk) {
+        toast("引擎未连接，请先连接后再新建项目");
+        boot(true);
+        return;
+      }
+      document.getElementById("proj-name").value = "";
+      document.getElementById("proj-path").value = "";
+      document.getElementById("proj-blurb").value = "";
+      const picker = document.getElementById("proj-folder-picker");
+      if (picker) picker.value = "";
+      document.getElementById("proj-modal").classList.add("open");
+      setTimeout(() => document.getElementById("proj-name").focus(), 30);
+    }
+
+    function closeProjectModal() {
+      document.getElementById("proj-modal").classList.remove("open");
+    }
+
+    /** Best-effort path from browser directory input (often empty — security). */
+    function folderPathFromPickerFiles(fileList) {
+      if (!fileList || !fileList.length) return "";
+      const f = fileList[0];
+      const abs = f.path || f.fullPath || "";
+      if (abs) {
+        const norm = String(abs).replace(/\//g, "\\");
+        const i = norm.lastIndexOf("\\");
+        if (i > 0) return norm.slice(0, i);
+        return norm;
+      }
+      return "";
+    }
+
+    /** Desktop: native folder dialog via Rust IPC. Browser: fallback file input (no abs path). */
+    function pickProjectFolder() {
+      if (window.__REQ_DESKTOP__ && window.ipc && typeof window.ipc.postMessage === "function") {
+        window.ipc.postMessage("pick_folder");
+        return;
+      }
+      // Browser fallback — will often show “上传到此站点” and not give absolute path
+      const picker = document.getElementById("proj-folder-picker");
+      if (!picker) {
+        toast("请直接粘贴文件夹绝对路径");
+        document.getElementById("proj-path")?.focus();
+        return;
+      }
+      picker.value = "";
+      picker.click();
+    }
+
+    window.__onNativeFolderPicked = function (path) {
+      if (path) {
+        document.getElementById("proj-path").value = path;
+        toast("已选择文件夹");
+      } else {
+        toast("未选择文件夹");
+      }
+    };
+
+    async function submitProject() {
+      const name = document.getElementById("proj-name").value.trim();
+      if (!name) {
+        document.getElementById("proj-name").focus();
+        toast("请填写项目名称");
+        return;
+      }
+      const local_path = document.getElementById("proj-path").value.trim();
+      const blurb = document.getElementById("proj-blurb").value.trim();
+      const btn = document.getElementById("proj-submit");
+      btn.disabled = true;
+      try {
+        if (!connOk) {
+          await boot(true);
+          if (!connOk) {
+            showConfig(true);
+            return;
+          }
+        }
+        const body = {
+          name,
+          color: COLORS[PROJECTS.length % COLORS.length],
+          blurb: blurb || "",
+          local_path: local_path || "",
+        };
+        const created = await api("/projects", { method: "POST", body });
+        await loadProjects();
+        // ensure new project in list even if API omits fields or race
+        if (created && !PROJECTS.some((p) => p.id === created.id)) {
+          PROJECTS.push({
+            id: created.id,
+            name: created.name || name,
+            color: created.color || body.color,
+            blurb: created.blurb || blurb || "",
+            local_path: created.local_path || created.localPath || local_path || "",
+            tasks: [],
+          });
+        } else if (created) {
+          const existing = PROJECTS.find((p) => p.id === created.id);
+          if (existing && local_path && !existing.local_path) {
+            // Backend may not echo local_path yet — keep what user submitted
+            existing.local_path = local_path;
+          }
+        }
+        closeProjectModal();
+        const newId = created?.id || PROJECTS[PROJECTS.length - 1]?.id;
+        if (newId) selectProject(newId);
+        else {
+          renderChrome();
+          render();
+        }
+        toast(local_path ? "项目已创建（已绑定文件夹）" : "项目已创建");
+      } catch (e) {
+        toast("创建项目失败: " + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    /** @deprecated use openProjectModal */
+    function addProject() {
+      openProjectModal();
+    }
+
+    function ok(t) {
+      if (filter === "p0" && t.priority !== "P0") return false;
+      if (filter === "blocked" && t.status !== "blocked") return false;
+      if (filter === "todo" && t.status !== "todo") return false;
+      if (filter === "doing" && !["in_progress", "blocked", "scheduled"].includes(t.status)) return false;
+      if (filter === "review" && t.status !== "review") return false;
+      if (filter === "done" && t.status !== "done") return false;
+      if (q && !(t.id + t.title).toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    }
+
+    /** Map filter id → board column title for scroll/highlight */
+    function filterToColTitle(f) {
+      if (f === "todo") return "需求";
+      if (f === "doing" || f === "blocked") return "进行中";
+      if (f === "review") return "审核中";
+      if (f === "done") return "已完成";
+      return null;
+    }
+
+    function syncFilterChrome() {
+      document.querySelectorAll(".nav-item[data-f]").forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-f") === filter);
+      });
+      document.querySelectorAll(".stat[data-f]").forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-f") === filter);
+      });
+    }
+
+    function setFilter(next, { scrollCol } = {}) {
+      const f = String(next || "all");
+      filter = f;
+      syncFilterChrome();
+      render();
+      syncFilterChrome(); // render rebuilds board only; re-assert nav state
+      const colTitle = scrollCol !== false ? filterToColTitle(f) : null;
+      if (colTitle) {
+        requestAnimationFrame(() => {
+          const col = Array.from(document.querySelectorAll(".col")).find(
+            (c) => c.dataset.col === colTitle
+          );
+          if (col) {
+            col.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            col.classList.add("flash");
+            setTimeout(() => col.classList.remove("flash"), 900);
+          }
+        });
+      }
+      const labels = {
+        all: "全部",
+        p0: "仅 P0",
+        blocked: "阻塞",
+        todo: "需求列",
+        doing: "进行中",
+        review: "审核中",
+        done: "已完成",
+      };
+      if (f !== "all") toast("筛选：" + (labels[f] || f));
+    }
+
+    function updateStats(list) {
+      const all = list.length;
+      const p0 = countOf(list, (t) => t.priority === "P0");
+      const blocked = countOf(list, (t) => t.status === "blocked");
+      document.getElementById("badge-all").textContent = all;
+      document.getElementById("badge-p0").textContent = p0;
+      document.getElementById("badge-blocked").textContent = blocked;
+      document.getElementById("st-todo").textContent = countOf(list, (t) => t.status === "todo");
+      document.getElementById("st-doing").textContent = countOf(list, (t) =>
+        ["in_progress", "blocked", "scheduled"].includes(t.status)
+      );
+      document.getElementById("st-review").textContent = countOf(list, (t) => t.status === "review");
+      document.getElementById("st-done").textContent = countOf(list, (t) => t.status === "done");
+    }
+
+    function closeDrawer() {
+      selected = null;
+      const d = document.getElementById("drawer");
+      d.classList.remove("open");
+      d.setAttribute("aria-hidden", "true");
+      setVerbButtons(null);
+      render();
+    }
+
+    function fillDrawer(t, { keepTimeline } = {}) {
+      document.getElementById("d-id").textContent =
+        t.id + " · " + t.priority + " · " + t.apiStatus + (t.status === "blocked" ? " (blocked)" : "");
+      document.getElementById("d-title").textContent = t.title;
+      const timeline = keepTimeline && t.timeline?.length
+        ? t.timeline
+        : t.timeline || [];
+      document.getElementById("d-body").innerHTML = `
+        ${t.blocked_reason ? `<div class="alert">${esc(t.blocked_reason)}</div>` : ""}
+        <h4>项目</h4><p>${esc(project().name)}${projectPathOf(project()) ? `<br><span style="font-size:11px;color:var(--text-2);font-family:Consolas,monospace">${esc(projectPathOf(project()))}</span>` : ""}</p>
+        <h4>描述</h4><p>${esc(t.description) || "—"}</p>
+        <h4>验收标准</h4><ul>${(t.ac || []).map((a) => `<li>${esc(typeof a === "string" ? a : JSON.stringify(a))}</li>`).join("") || "<li>—</li>"}</ul>
+        <h4>Scope</h4><div>${(t.scope || []).map((s) => `<span class="chip">${esc(typeof s === "string" ? s : JSON.stringify(s))}</span>`).join("") || "—"}</div>
+        <h4>依赖</h4><div>${(t.deps || []).map((s) => `<span class="chip">${esc(typeof s === "string" ? s : JSON.stringify(s))}</span>`).join("") || "—"}</div>
+        <h4>执行上报</h4>
+        <p style="color:var(--text-2);font-size:12px">${t.progress ? esc(t.progress) : "无 — 引擎不探测 Worker / IDLE"}</p>
+        ${t.claimed_by ? `<p style="font-size:12px;margin-top:6px">claimed_by: <code>${esc(t.claimed_by)}</code></p>` : ""}
+        ${t.created_by ? `<p style="font-size:12px;margin-top:4px">created_by: <code>${esc(t.created_by)}</code></p>` : ""}
+        ${t.external ? `<p style="font-size:12px;margin-top:4px">external_run_id: <code>${esc(t.external)}</code></p>` : ""}
+        <h4>时间线</h4>
+        <ul id="d-timeline">${timeline.length
+          ? timeline.map((e) => `<li>${esc(e.t)} · ${esc(e.actor)} — ${esc(e.text)}</li>`).join("")
+          : "<li style='color:var(--text-2)'>加载中…</li>"}</ul>`;
+      setVerbButtons(t);
+    }
+
+    async function openDrawer(id) {
+      if (selected === id) {
+        closeDrawer();
+        return;
+      }
+      selected = id;
+      const t = tasks().find((x) => x.id === id);
+      if (!t) return;
+      document.getElementById("drawer").classList.add("open");
+      document.getElementById("drawer").setAttribute("aria-hidden", "false");
+      fillDrawer(t);
+      render();
+      // Load detail + events
+      try {
+        const detail = await api("/requirements/" + encodeURIComponent(id));
+        if (selected !== id) return;
+        const mapped = mapRequirement(detail);
+        mapped.timeline = mapEvents(detail.events);
+        // merge into cache
+        const list = tasks();
+        const idx = list.findIndex((x) => x.id === id);
+        if (idx >= 0) list[idx] = Object.assign(list[idx], mapped, { timeline: mapped.timeline });
+        fillDrawer(list[idx] || mapped);
+      } catch (e) {
+        const ul = document.getElementById("d-timeline");
+        if (ul) ul.innerHTML = `<li style="color:var(--danger)">时间线加载失败: ${esc(e.message)}</li>`;
+      }
+    }
+
+    function render() {
+      const list = tasks();
+      updateStats(list);
+      const visible = list.filter(ok);
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      // Always paint 4 columns — even with 0 projects / disconnected
+      COLS.forEach((col) => {
+        const items = visible.filter((t) => col.statuses.includes(t.status));
+        const sec = document.createElement("section");
+        sec.className = "col";
+        sec.dataset.col = col.title;
+        const isTodo = col.title === "需求";
+        const todoCount = isTodo ? items.length : 0;
+        const head = isTodo
+          ? `<div class="col-h-wrap">
+              <button type="button" class="col-h col-h-todo" id="col-new-req" title="新建需求">
+                <span class="col-h-default"><b>${col.title}</b><span class="count">${items.length}</span></span>
+                <span class="col-h-create"><span class="plus">+</span><span>新建需求</span></span>
+              </button>
+              ${todoCount > 0 ? `<button type="button" class="btn-native col-bulk-cancel" id="col-cancel-all-todo" title="软取消本列全部待办">取消全部待办</button>` : ""}
+            </div>`
+          : `<div class="col-h"><b>${col.title}</b><span class="count">${items.length}</span></div>`;
+        sec.innerHTML = `${head}<div class="col-b"></div>`;
+        const body = sec.querySelector(".col-b");
+        if (!items.length) {
+          body.innerHTML = `<div class="empty-col">暂无任务</div>`;
+        }
+        items.forEach((t) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className =
+            "card" +
+            (t.status === "blocked" ? " blocked" : "") +
+            (selected === t.id ? " selected" : "");
+          const shortId = t.id.length > 14 ? t.id.slice(0, 8) + "…" : t.id;
+          b.innerHTML = `
+            <div class="card-top"><span class="card-id" title="${esc(t.id)}">${esc(shortId)}</span>
+            <span class="prio ${t.priority.toLowerCase()}">${t.priority}</span>
+            ${t.status === "blocked" ? '<span class="prio p0">阻塞</span>' : ""}</div>
+            <div class="card-title">${esc(t.title)}</div>
+            <div class="card-meta">
+              ${t.scope?.[0] ? `<span>${esc(typeof t.scope[0] === "string" ? t.scope[0] : JSON.stringify(t.scope[0]))}</span>` : ""}
+              ${t.deps?.length ? `<span>依赖 ${t.deps.length}</span>` : ""}
+              <span>${esc(t.updated)}</span>
+            </div>
+            ${t.progress ? `<div class="progress">${esc(t.progress)}</div>` : ""}
+            ${t.blocked_reason ? `<div class="progress" style="color:var(--danger)">${esc(t.blocked_reason)}</div>` : ""}`;
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openDrawer(t.id);
+          });
+          body.appendChild(b);
+        });
+        board.appendChild(sec);
+      });
+
+      const head = document.getElementById("col-new-req");
+      if (head) {
+        head.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openNewModal();
+        });
+      }
+      document.getElementById("col-cancel-all-todo")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cancelAllTodos();
+      });
+      syncFilterChrome();
+    }
+
+    async function archiveProject(id) {
+      const p = PROJECTS.find((x) => x.id === id);
+      if (!p) return;
+      const ok = await appConfirm({
+        title: "取消项目",
+        message: `将归档项目「${p.name}」。看板中不再显示该项目；需求数据保留在库中（软归档，非物理删除）。`,
+        warn: "此操作不会删除本机绑定文件夹。",
+        okLabel: "归档项目",
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await api("/projects/" + encodeURIComponent(id) + "/archive", { method: "POST" });
+        toast("项目已归档（可用「已归档」恢复）");
+        if (projectId === id) {
+          projectId = null;
+          selected = null;
+          closeDrawer();
+        }
+        await loadProjects();
+        if (!projectId && PROJECTS[0]) projectId = PROJECTS[0].id;
+        if (projectId) await loadRequirements(projectId, { silent: true });
+        renderChrome();
+        render();
+      } catch (e) {
+        toast("归档失败: " + (e.message || e));
+      }
+    }
+
+    async function unarchiveProject(id) {
+      try {
+        await api("/projects/" + encodeURIComponent(id) + "/unarchive", { method: "POST" });
+        toast("项目已恢复");
+        await loadProjects();
+        projectId = id;
+        await loadRequirements(id, { silent: true });
+        renderChrome();
+        render();
+      } catch (e) {
+        toast("恢复失败: " + (e.message || e));
+      }
+    }
+
+    async function cancelAllTodos() {
+      if (!projectId) {
+        toast("请先选择项目");
+        return;
+      }
+      const todos = tasks().filter((t) => t.apiStatus === "todo");
+      if (!todos.length) {
+        toast("没有待办需求可取消");
+        return;
+      }
+      const step1 = await appConfirm({
+        title: "取消全部待办",
+        message: `将软取消当前项目「需求」列中的 ${todos.length} 条待办（status → cancelled，看板不再显示）。`,
+        warn: "进行中 / 审核中 / 已完成 的卡片不会受影响。",
+        okLabel: "继续",
+        danger: true,
+      });
+      if (!step1) return;
+      const step2 = await appConfirm({
+        title: "二次确认",
+        message: `确定取消这 ${todos.length} 条待办吗？此操作不可在 UI 中一键撤销。`,
+        warn: "请再次确认。",
+        okLabel: "确认全部取消",
+        danger: true,
+      });
+      if (!step2) return;
+      let okN = 0;
+      let failN = 0;
+      for (const t of todos) {
+        try {
+          await api("/requirements/" + encodeURIComponent(t.id) + "/cancel", { method: "POST" });
+          okN++;
+        } catch {
+          failN++;
+        }
+      }
+      toast(failN ? `已取消 ${okN} 条，失败 ${failN} 条` : `已取消 ${okN} 条待办`);
+      selected = null;
+      closeDrawer();
+      await loadRequirements(projectId);
+      renderChrome();
+      render();
+    }
+
+    function openNewModal() {
+      if (!connOk || !apiToken) {
+        showConfig(true);
+        toast(apiToken ? "引擎未连接，请刷新或检查高级配置" : "尚未鉴权：桌面应自动注入 token");
+        return;
+      }
+      if (!projectId || !PROJECTS.length) {
+        closeDrawer();
+        toast("请先新建 / 选择一个项目（顶栏「＋ 新建项目」）");
+        openProjectModal();
+        return;
+      }
+      document.getElementById("new-modal").classList.add("open");
+      document.getElementById("new-title").value = "";
+      document.getElementById("new-desc").value = "";
+      document.getElementById("new-prio").value = "P1";
+      document.getElementById("new-modal-proj").textContent = project().name;
+      setTimeout(() => document.getElementById("new-title").focus(), 30);
+    }
+    function closeNewModal() {
+      document.getElementById("new-modal").classList.remove("open");
+    }
+
+    async function submitNew() {
+      const title = document.getElementById("new-title").value.trim();
+      if (!title) {
+        document.getElementById("new-title").focus();
+        return;
+      }
+      const desc = document.getElementById("new-desc").value.trim();
+      const uiPrio = document.getElementById("new-prio").value;
+      const btn = document.getElementById("new-submit");
+      btn.disabled = true;
+      try {
+        const created = await api(
+          "/projects/" + encodeURIComponent(projectId) + "/requirements",
+          {
+            method: "POST",
+            body: {
+              title,
+              description: desc || "",
+              priority: priorityToApi(uiPrio),
+            },
+          }
+        );
+        closeNewModal();
+        await loadRequirements(projectId);
+        renderChrome();
+        render();
+        if (created?.id) openDrawer(created.id);
+        toast("已创建到待办");
+      } catch (e) {
+        toast("创建失败: " + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function afterVerb(msg) {
+      toast(msg);
+      await loadRequirements(projectId);
+      renderChrome();
+      render();
+      const id = selected;
+      if (id && tasks().some((x) => x.id === id)) {
+        selected = null;
+        openDrawer(id);
+      } else {
+        closeDrawer();
+      }
+    }
+
+    async function completeReview(pass) {
+      if (!selected) return;
+      const t = tasks().find((x) => x.id === selected);
+      if (!t || t.apiStatus !== "review") {
+        toast("仅审核中（review）可确认完成 / 驳回");
+        return;
+      }
+      let reason = null;
+      if (!pass) {
+        reason = await promptRejectReason();
+        if (reason == null) return; // dismissed
+        if (!String(reason).trim()) {
+          toast("驳回必须填写原因");
+          return;
+        }
+        reason = String(reason).trim();
+      }
+      try {
+        await api("/requirements/" + encodeURIComponent(selected) + "/complete-review", {
+          method: "POST",
+          body: { pass: !!pass, reason },
+        });
+        await afterVerb(pass ? "已确认完成 → done" : "已驳回 → todo");
+      } catch (e) {
+        toast("操作失败: " + (e.message || e));
+      }
+    }
+
+    async function cancelSelected() {
+      if (!selected) return;
+      const ok = await appConfirm({
+        title: "取消需求",
+        message: "软取消该需求？看板将不再显示（状态 → cancelled）。",
+        warn: "数据保留在库中，非物理删除。",
+        okLabel: "取消需求",
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await api("/requirements/" + encodeURIComponent(selected) + "/cancel", { method: "POST" });
+        toast("已取消");
+        selected = null;
+        closeDrawer();
+        await loadRequirements(projectId);
+        renderChrome();
+        render();
+      } catch (e) {
+        toast("取消失败: " + (e.message || e));
+      }
+    }
+
+    function closeDropdown() {
+      document.getElementById("dd-menu").classList.remove("open");
+    }
+
+    /* ========== Events ========== */
+    document.getElementById("cfg-save").addEventListener("click", saveConfig);
+    document.getElementById("cfg-hide").addEventListener("click", () => showConfig(false));
+    document.getElementById("btn-settings").addEventListener("click", () => showConfig(true));
+    document.getElementById("status-cfg").addEventListener("click", () => showConfig(true));
+    document.getElementById("btn-refresh").addEventListener("click", () => {
+      refreshAll({ silent: false }).then(() => toast("已刷新"));
+    });
+    document.getElementById("cfg-token").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveConfig();
+    });
+
+    document.getElementById("dd-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("dd-menu").classList.toggle("open");
+    });
+    document.addEventListener("click", () => closeDropdown());
+    document.getElementById("dd-menu").addEventListener("click", (e) => e.stopPropagation());
+
+    document.getElementById("conv-search").addEventListener("input", (e) => {
+      convQ = e.target.value;
+      renderChrome();
+    });
+    document.getElementById("conv-new").addEventListener("click", openProjectModal);
+
+    document.getElementById("board").addEventListener("click", (e) => {
+      if (!e.target.closest(".card") && selected) closeDrawer();
+    });
+    document.getElementById("btn-close").addEventListener("click", closeDrawer);
+    document.getElementById("btn-close-x").addEventListener("click", closeDrawer);
+    document.getElementById("btn-copy").addEventListener("click", () => {
+      if (selected) {
+        navigator.clipboard?.writeText(selected);
+        toast("已复制 ID");
+      }
+    });
+    document.getElementById("btn-complete").addEventListener("click", () => completeReview(true));
+    document.getElementById("btn-reject").addEventListener("click", () => completeReview(false));
+    document.getElementById("btn-cancel").addEventListener("click", () => cancelSelected());
+    document.getElementById("btn-new-req").addEventListener("click", () => openNewModal());
+    document.getElementById("btn-archive-project")?.addEventListener("click", () => {
+      if (projectId) archiveProject(projectId);
+    });
+    document.getElementById("btn-copy-discuss")?.addEventListener("click", () => copySeatPack("discuss"));
+    document.getElementById("btn-copy-build")?.addEventListener("click", () => copySeatPack("build"));
+    document.getElementById("btn-rotate-discuss")?.addEventListener("click", () => rotateSeat("discuss"));
+    document.getElementById("btn-rotate-build")?.addEventListener("click", () => rotateSeat("build"));
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.getElementById("proj-modal").classList.contains("open")) closeProjectModal();
+        else if (document.getElementById("new-modal").classList.contains("open")) closeNewModal();
+        else if (selected) closeDrawer();
+        closeDropdown();
+      }
+    });
+
+    // Event delegation — survives re-renders and badge clicks
+    document.getElementById("nav-filters").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-f]");
+      if (!btn || !document.getElementById("nav-filters").contains(btn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const f = btn.getAttribute("data-f");
+      if (!f) return;
+      setFilter(f);
+    });
+
+    document.getElementById("search").addEventListener("input", (e) => {
+      q = e.target.value || "";
+      render();
+    });
+
+    document.getElementById("new-cancel").addEventListener("click", closeNewModal);
+    document.getElementById("new-submit").addEventListener("click", submitNew);
+    document.getElementById("new-modal").addEventListener("click", (e) => {
+      if (e.target.id === "new-modal") closeNewModal();
+    });
+    document.getElementById("new-title").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submitNew();
+      }
+    });
+
+    document.getElementById("proj-cancel").addEventListener("click", closeProjectModal);
+    document.getElementById("proj-submit").addEventListener("click", submitProject);
+    document.getElementById("proj-modal").addEventListener("click", (e) => {
+      if (e.target.id === "proj-modal") closeProjectModal();
+    });
+    document.getElementById("proj-name").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitProject();
+      }
+    });
+    document.getElementById("proj-path").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitProject();
+      }
+    });
+    document.getElementById("proj-path-pick").addEventListener("click", pickProjectFolder);
+    document.getElementById("proj-folder-picker").addEventListener("change", (e) => {
+      const path = folderPathFromPickerFiles(e.target.files);
+      if (path) {
+        document.getElementById("proj-path").value = path;
+      } else if (e.target.files?.length) {
+        // Standard browsers strip absolute paths; user must paste manually
+        toast("无法读取绝对路径，请手动粘贴本机文件夹路径");
+      }
+    });
+
+    // Frameless chrome: only the desktop host injects these.
+    // Do not key off body.shell-native — that class is also in the browser file.
+    if (window.__REQ_DESKTOP__ || window.__REQ_BOOTSTRAP__) {
+      document.body.classList.add("is-desktop");
+    }
+    function postWin(msg) {
+      if (window.ipc && typeof window.ipc.postMessage === "function") {
+        window.ipc.postMessage(msg);
+        return;
+      }
+      if (window.chrome && window.chrome.webview && typeof window.chrome.webview.postMessage === "function") {
+        window.chrome.webview.postMessage(msg);
+      }
+    }
+    document.getElementById("win-min")?.addEventListener("click", () => postWin("win_minimize"));
+    document.getElementById("win-max")?.addEventListener("click", () => postWin("win_maximize"));
+    document.getElementById("win-close")?.addEventListener("click", () => postWin("win_close"));
+    document.getElementById("win-quit")?.addEventListener("click", () => postWin("win_quit"));
+    document.getElementById("titlebar")?.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      if (e.target.closest(".caption")) return;
+      // Double-click maximize (Teams/Windows convention)
+      if (e.detail === 2) {
+        postWin("win_maximize");
+        return;
+      }
+      postWin("win_drag");
+    });
+
+    // Init config fields + paint empty chrome immediately, then boot
+    document.getElementById("cfg-base").value = apiBase;
+    document.getElementById("cfg-token").value = apiToken;
+    document.body.classList.add("mode-tabs");
+    setConn(false, "连接中…");
+    renderChrome();
+    render();
+    boot(false);
+  </script>
+</body>
+</html>

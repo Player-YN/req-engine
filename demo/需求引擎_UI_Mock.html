@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>需求引擎 · UI Mock v0.2.1</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg-elevated: #161b22;
+      --bg-card: #1c2128;
+      --bg-card-hover: #22272e;
+      --border: #30363d;
+      --border-subtle: #21262d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim: #6e7681;
+      --accent: #58a6ff;
+      --accent-soft: rgba(88, 166, 255, 0.12);
+      --green: #3fb950;
+      --green-soft: rgba(63, 185, 80, 0.12);
+      --orange: #d29922;
+      --orange-soft: rgba(210, 153, 34, 0.12);
+      --red: #f85149;
+      --red-soft: rgba(248, 81, 73, 0.12);
+      --purple: #a371f7;
+      --purple-soft: rgba(163, 113, 247, 0.12);
+      --cyan: #39d353;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --mono: "Cascadia Code", "SF Mono", Consolas, monospace;
+      --top-h: 52px;
+      --side-w: 220px;
+      --drawer-w: 400px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    /* —— Top bar —— */
+    .topbar {
+      height: var(--top-h);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    .logo-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #58a6ff 0%, #a371f7 100%);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #0d1117;
+    }
+
+    .badge-ver {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 500;
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 999px;
+    }
+
+    .topbar .divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    .select-like, .search-box, .btn {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      height: 32px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    .select-like {
+      padding: 0 10px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: default;
+    }
+
+    .search-box {
+      width: 220px;
+      padding: 0 10px 0 32px;
+      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M11.5 7a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0zm-.8 4.3 3.5 3.5-.7.7-3.5-3.5a5.5 5.5 0 1 1 .7-.7z'/%3E%3C/svg%3E") 10px center no-repeat;
+    }
+
+    .search-box::placeholder { color: var(--text-dim); }
+    .search-box:focus { outline: none; border-color: var(--accent); }
+
+    .spacer { flex: 1; }
+
+    .btn {
+      padding: 0 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .btn:hover { background: var(--bg-card); border-color: var(--text-dim); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0d1117;
+      font-weight: 600;
+    }
+    .btn-primary:hover { filter: brightness(1.08); background: var(--accent); }
+    .btn-ghost { background: transparent; }
+
+    .conn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .conn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 3px var(--green-soft);
+    }
+
+    /* —— Shell —— */
+    .shell {
+      display: flex;
+      height: calc(100vh - var(--top-h) - 28px);
+    }
+
+    /* —— Sidebar —— */
+    .sidebar {
+      width: var(--side-w);
+      border-right: 1px solid var(--border);
+      background: var(--bg-elevated);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .side-section h3 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+    .stat .n {
+      font-size: 18px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat .l { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+    .stat.todo .n { color: var(--text-muted); }
+    .stat.doing .n { color: var(--accent); }
+    .stat.review .n { color: var(--purple); }
+    .stat.done .n { color: var(--green); }
+
+    .filter-list { display: flex; flex-direction: column; gap: 2px; }
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .filter-item:hover { background: var(--bg); color: var(--text); }
+    .filter-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(88, 166, 255, 0.25);
+    }
+    .filter-item .count {
+      margin-left: auto;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.7;
+    }
+
+    .hint-box {
+      margin-top: auto;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border);
+      background: var(--bg);
+      color: var(--text-dim);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .hint-box strong { color: var(--orange); font-weight: 600; }
+
+    /* —— Board —— */
+    .board-wrap {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .board {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(200px, 1fr));
+      gap: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      min-height: 0;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-right: 1px solid var(--border-subtle);
+      background: var(--bg);
+    }
+    .col:last-child { border-right: none; }
+
+    .col-head {
+      padding: 12px 12px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 1;
+    }
+    .col-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .col-dot.todo { background: var(--text-dim); }
+    .col-dot.doing { background: var(--accent); }
+    .col-dot.review { background: var(--purple); }
+    .col-dot.done { background: var(--green); }
+
+    .col-title { font-weight: 600; font-size: 13px; }
+    .col-count {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      padding: 0 6px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .col-body {
+      padding: 10px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* —— Card —— */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 11px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s, transform 0.12s;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+      width: 100%;
+    }
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: #484f58;
+    }
+    .card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .card.blocked {
+      border-color: rgba(248, 81, 73, 0.45);
+      box-shadow: inset 3px 0 0 var(--red);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .card-id {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+    .prio {
+      font-size: 10px;
+      font-weight: 650;
+      padding: 1px 5px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+    .prio.p0 { background: var(--red-soft); color: var(--red); }
+    .prio.p1 { background: var(--orange-soft); color: var(--orange); }
+    .prio.p2 { background: var(--accent-soft); color: var(--accent); }
+    .prio.p3 { background: var(--bg-elevated); color: var(--text-dim); border: 1px solid var(--border); }
+
+    .tag-blocked {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--red);
+      background: var(--red-soft);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .card-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .progress-line {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .progress-line em {
+      font-style: normal;
+      color: var(--text-dim);
+      margin-right: 4px;
+    }
+
+    .claimed {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--cyan);
+      opacity: 0.9;
+    }
+
+    /* —— Drawer —— */
+    .drawer {
+      width: 0;
+      flex-shrink: 0;
+      border-left: 1px solid transparent;
+      background: var(--bg-elevated);
+      overflow: hidden;
+      transition: width 0.2s ease, border-color 0.2s;
+    }
+    .drawer.open {
+      width: var(--drawer-w);
+      border-left-color: var(--border);
+    }
+    .drawer-inner {
+      width: var(--drawer-w);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .drawer-head {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .drawer-head .titles { flex: 1; min-width: 0; }
+    .drawer-head .id-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .drawer-head h2 {
+      font-size: 16px;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+    .close-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+    .close-btn:hover { background: var(--bg); color: var(--text); }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 24px;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+    .section h4 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .section p, .section li {
+      color: var(--text-muted);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+    .section ul {
+      padding-left: 18px;
+    }
+    .section li { margin-bottom: 4px; }
+    .section li.ac-ok { color: var(--green); }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .chip.dep { border-color: rgba(163, 113, 247, 0.4); color: var(--purple); }
+    .chip.non { opacity: 0.65; text-decoration: line-through; }
+
+    .alert {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--red-soft);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      color: #ffa198;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
+    .link-row a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .link-row a:hover { text-decoration: underline; }
+
+    .timeline {
+      border-left: 2px solid var(--border);
+      margin-left: 6px;
+      padding-left: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tl-item { position: relative; }
+    .tl-item::before {
+      content: "";
+      position: absolute;
+      left: -19px;
+      top: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 2px solid var(--bg-elevated);
+    }
+    .tl-item.create::before { background: var(--text-muted); }
+    .tl-item.claim::before { background: var(--accent); }
+    .tl-item.progress::before { background: var(--orange); }
+    .tl-item.review::before { background: var(--purple); }
+    .tl-item.done::before { background: var(--green); }
+
+    .tl-time { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; }
+    .tl-text { font-size: 12px; color: var(--text-muted); }
+    .tl-actor {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .drawer-actions {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--bg-elevated);
+    }
+
+    /* —— Footer —— */
+    .footer {
+      height: 28px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .footer strong { color: var(--text-muted); font-weight: 500; }
+
+    .mock-note {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0.95;
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-mark">RE</div>
+      需求引擎
+      <span class="badge-ver">UI Mock · PRD v0.2.1</span>
+    </div>
+    <div class="divider"></div>
+    <div class="select-like" title="MVP 单项目">📦 demo-shop <span style="opacity:.5">▾</span></div>
+    <input class="search-box" type="search" placeholder="搜索 ID / 标题…" id="search" />
+    <div class="spacer"></div>
+    <div class="conn" title="引擎本地连接">
+      <span class="conn-dot"></span> 引擎在线 · MCP
+    </div>
+    <button class="btn btn-ghost" type="button">列表</button>
+    <button class="btn btn-primary" type="button">＋ 新建需求</button>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-section">
+        <h3>概览</h3>
+        <div class="stat-grid">
+          <div class="stat todo"><div class="n" id="n-todo">3</div><div class="l">需求</div></div>
+          <div class="stat doing"><div class="n" id="n-doing">3</div><div class="l">进行中</div></div>
+          <div class="stat review"><div class="n" id="n-review">2</div><div class="l">审核中</div></div>
+          <div class="stat done"><div class="n" id="n-done">2</div><div class="l">已完成</div></div>
+        </div>
+      </div>
+      <div class="side-section">
+        <h3>快捷过滤</h3>
+        <div class="filter-list">
+          <div class="filter-item active" data-filter="all">全部 <span class="count">10</span></div>
+          <div class="filter-item" data-filter="p0">仅 P0 <span class="count">1</span></div>
+          <div class="filter-item" data-filter="blocked">仅阻塞 <span class="count">1</span></div>
+          <div class="filter-item" data-filter="stale">超过 24h 未更新 <span class="count">1</span></div>
+        </div>
+      </div>
+      <div class="hint-box">
+        <strong>设计边界</strong><br />
+        本面板只展示任务契约与状态。不显示 subagent / IDLE——那是实现侧内部状态，引擎不可见。
+      </div>
+    </aside>
+
+    <div class="board-wrap">
+      <div class="board" id="board">
+        <!-- columns filled by JS -->
+      </div>
+    </div>
+
+    <aside class="drawer" id="drawer">
+      <div class="drawer-inner">
+        <div class="drawer-head">
+          <div class="titles">
+            <div class="id-row">
+              <span class="card-id" id="d-id">REQ-000</span>
+              <span class="prio p1" id="d-prio">P1</span>
+            </div>
+            <h2 id="d-title">—</h2>
+          </div>
+          <button class="close-btn" type="button" id="close-drawer" aria-label="关闭">×</button>
+        </div>
+        <div class="drawer-body" id="d-body"></div>
+        <div class="drawer-actions">
+          <button class="btn" type="button">复制 ID</button>
+          <button class="btn" type="button">编辑</button>
+          <button class="btn" type="button">取消需求</button>
+          <button class="btn btn-primary" type="button">确认完成</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span>最近事件：<strong>REQ-014 claimed</strong> · 2 分钟前</span>
+    <span>SQLite · localhost:7420</span>
+    <span class="spacer"></span>
+    <span>刷新：每 3s 轮询（Mock 静态）</span>
+  </footer>
+
+  <div class="mock-note">静态高保真 Mock · 点击卡片打开详情抽屉 · 与 PRD §13 对齐</div>
+
+  <script>
+    const COLS = [
+      { key: "todo", title: "需求", dot: "todo", statuses: ["todo"] },
+      { key: "doing", title: "进行中", dot: "doing", statuses: ["scheduled", "in_progress", "blocked"] },
+      { key: "review", title: "审核中", dot: "review", statuses: ["review"] },
+      { key: "done", title: "已完成", dot: "done", statuses: ["done", "cancelled"] },
+    ];
+
+    const TASKS = [
+      {
+        id: "REQ-018",
+        title: "结算页增加发票抬头可选填写",
+        priority: "P1",
+        status: "todo",
+        scope: ["frontend/checkout"],
+        deps: [],
+        updated: "12 分钟前",
+        description: "B 端用户下单时需要填写发票抬头，仅展示字段，暂不对接税控。",
+        ac: ["结算页出现发票抬头输入", "可不填直接下单", "移动端布局不溢出"],
+        non_scope: ["backend", "tax API"],
+        timeline: [
+          { t: "今天 14:02", actor: "planner@codex", kind: "create", text: "创建需求" },
+        ],
+      },
+      {
+        id: "REQ-017",
+        title: "搜索结果支持按销量排序",
+        priority: "P2",
+        status: "todo",
+        scope: ["frontend/search", "api/search"],
+        deps: ["REQ-012"],
+        updated: "40 分钟前",
+        description: "在现有相关度排序旁增加「销量」排序；依赖搜索 API 字段已就绪（REQ-012）。",
+        ac: ["排序下拉含销量", "默认仍为相关度", "空结果态不变"],
+        non_scope: [],
+        timeline: [
+          { t: "今天 13:30", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "今天 13:35", actor: "human", kind: "create", text: "补充依赖 REQ-012" },
+        ],
+      },
+      {
+        id: "REQ-016",
+        title: "首页快捷入口（运营可配置）",
+        priority: "P0",
+        status: "todo",
+        scope: ["frontend/home"],
+        deps: [],
+        updated: "1 小时前",
+        description: "提升首页操作效率：展示 4 个快捷入口，文案与链接来自配置接口。",
+        ac: ["首页展示快捷入口", "移动端正常显示", "配置缺失时隐藏整块"],
+        non_scope: ["backend CMS 后台 UI"],
+        timeline: [
+          { t: "今天 12:10", actor: "planner@kimi", kind: "create", text: "创建需求" },
+        ],
+      },
+      {
+        id: "REQ-015",
+        title: "购物车数量角标实时更新",
+        priority: "P1",
+        status: "in_progress",
+        scope: ["frontend/cart"],
+        deps: [],
+        updated: "3 分钟前",
+        progress: "正在改 Header 订阅 cart store",
+        claimed_by: "grok-foreman",
+        external: "https://example.com/pr/88",
+        description: "加购后无需刷新，顶栏角标立即变化。",
+        ac: ["加购后角标 +1", "清空购物车角标消失", "多标签页至少刷新后一致"],
+        non_scope: [],
+        timeline: [
+          { t: "今天 13:00", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "今天 14:10", actor: "grok-foreman", kind: "claim", text: "claim → in_progress" },
+          { t: "今天 14:18", actor: "grok-foreman", kind: "progress", text: "上报：改 Header 订阅 cart store" },
+        ],
+      },
+      {
+        id: "REQ-014",
+        title: "订单列表筛选「近 30 天」",
+        priority: "P2",
+        status: "in_progress",
+        scope: ["frontend/orders", "api/orders"],
+        deps: [],
+        updated: "2 分钟前",
+        progress: "API 已通，前端筛选条开发中",
+        claimed_by: "grok-foreman",
+        description: "订单中心增加时间快捷筛选。",
+        ac: ["可选近 7/30 天", "与分页兼容", "URL 可分享筛选状态"],
+        non_scope: [],
+        timeline: [
+          { t: "昨天 18:00", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "今天 14:20", actor: "grok-foreman", kind: "claim", text: "claim → in_progress" },
+        ],
+      },
+      {
+        id: "REQ-013",
+        title: "支付回调幂等加固",
+        priority: "P0",
+        status: "blocked",
+        scope: ["backend/pay"],
+        deps: [],
+        updated: "26 小时前",
+        progress: null,
+        claimed_by: "grok-foreman",
+        blocked_reason: "等待支付沙箱凭证；实现侧上报阻塞",
+        description: "重复回调不得产生重复发货。",
+        ac: ["相同 notify_id 只处理一次", "有集成测试", "日志可追踪"],
+        non_scope: ["前端"],
+        stale: true,
+        timeline: [
+          { t: "昨天 09:00", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "昨天 11:00", actor: "grok-foreman", kind: "claim", text: "claim → in_progress" },
+          { t: "昨天 12:30", actor: "grok-foreman", kind: "progress", text: "状态 → blocked：等待沙箱凭证" },
+        ],
+      },
+      {
+        id: "REQ-012",
+        title: "搜索 API 返回 sales_count 字段",
+        priority: "P1",
+        status: "review",
+        scope: ["api/search"],
+        deps: [],
+        updated: "20 分钟前",
+        progress: "机审待跑 / 已开 PR",
+        claimed_by: "grok-foreman",
+        external: "https://example.com/pr/81",
+        description: "为销量排序提供数据字段。",
+        ac: ["列表项含 sales_count", "文档已更新", "单测覆盖"],
+        non_scope: [],
+        timeline: [
+          { t: "昨天 16:00", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "今天 10:00", actor: "grok-foreman", kind: "claim", text: "claim" },
+          { t: "今天 13:50", actor: "grok-foreman", kind: "review", text: "submit → review" },
+        ],
+      },
+      {
+        id: "REQ-011",
+        title: "登录页错误文案统一",
+        priority: "P3",
+        status: "review",
+        scope: ["frontend/auth"],
+        deps: [],
+        updated: "1 小时前",
+        claimed_by: "grok-foreman",
+        description: "密码错误/用户不存在等文案与设计规范对齐。",
+        ac: ["文案表与设计稿一致", "无用户枚举风险文案"],
+        non_scope: [],
+        timeline: [
+          { t: "今天 11:00", actor: "planner@kimi", kind: "create", text: "创建需求" },
+          { t: "今天 12:40", actor: "grok-foreman", kind: "review", text: "进入 review" },
+        ],
+      },
+      {
+        id: "REQ-008",
+        title: "页脚版权年份动态化",
+        priority: "P3",
+        status: "done",
+        scope: ["frontend/layout"],
+        deps: [],
+        updated: "2 天前",
+        description: "页脚年份取当前年。",
+        ac: ["显示当前公历年"],
+        non_scope: [],
+        timeline: [
+          { t: "3 天前", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "2 天前", actor: "human", kind: "done", text: "确认完成" },
+        ],
+      },
+      {
+        id: "REQ-007",
+        title: "移除废弃的 /v1/legacy-cart 路由",
+        priority: "P2",
+        status: "done",
+        scope: ["api/cart"],
+        deps: [],
+        updated: "4 天前",
+        description: "确认无流量后删除。",
+        ac: ["路由 404", "文档删除", "监控无报警"],
+        non_scope: [],
+        timeline: [
+          { t: "5 天前", actor: "planner@codex", kind: "create", text: "创建需求" },
+          { t: "4 天前", actor: "grok-foreman", kind: "done", text: "done" },
+        ],
+      },
+    ];
+
+    let selectedId = null;
+    let filter = "all";
+    let query = "";
+
+    function matches(t) {
+      if (filter === "p0" && t.priority !== "P0") return false;
+      if (filter === "blocked" && t.status !== "blocked") return false;
+      if (filter === "stale" && !t.stale && t.status !== "blocked") return false;
+      if (filter === "stale" && t.status === "blocked" && !t.stale && !t.updated.includes("小时")) {
+        /* keep blocked stale sample */
+      }
+      if (query) {
+        const q = query.toLowerCase();
+        const blob = (t.id + t.title + (t.description || "")).toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      const visible = TASKS.filter(matches);
+
+      COLS.forEach((col) => {
+        const colTasks = visible.filter((t) => col.statuses.includes(t.status));
+        const el = document.createElement("section");
+        el.className = "col";
+        el.innerHTML = `
+          <div class="col-head">
+            <span class="col-dot ${col.dot}"></span>
+            <span class="col-title">${col.title}</span>
+            <span class="col-count">${colTasks.length}</span>
+          </div>
+          <div class="col-body" data-col="${col.key}"></div>
+        `;
+        const body = el.querySelector(".col-body");
+        if (!colTasks.length) {
+          body.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:12px 4px;text-align:center;">暂无任务</div>`;
+        } else {
+          colTasks.forEach((t) => body.appendChild(renderCard(t)));
+        }
+        board.appendChild(el);
+      });
+    }
+
+    function renderCard(t) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card" + (t.status === "blocked" ? " blocked" : "") + (selectedId === t.id ? " selected" : "");
+      btn.dataset.id = t.id;
+      const prioClass = t.priority.toLowerCase();
+      btn.innerHTML = `
+        <div class="card-top">
+          <span class="card-id">${t.id}</span>
+          <span class="prio ${prioClass}">${t.priority}</span>
+          ${t.status === "blocked" ? '<span class="tag-blocked">阻塞</span>' : ""}
+        </div>
+        <div class="card-title">${escapeHtml(t.title)}</div>
+        <div class="card-meta">
+          ${t.scope?.[0] ? `<span>📁 ${escapeHtml(t.scope[0])}${t.scope.length > 1 ? " +" + (t.scope.length - 1) : ""}</span>` : ""}
+          ${t.deps?.length ? `<span>🔗 依赖 ${t.deps.length}</span>` : ""}
+          <span>⏱ ${escapeHtml(t.updated)}</span>
+          ${t.claimed_by ? `<span class="claimed">${escapeHtml(t.claimed_by)}</span>` : ""}
+        </div>
+        ${t.progress ? `<div class="progress-line"><em>进度</em>${escapeHtml(t.progress)}</div>` : ""}
+        ${t.blocked_reason ? `<div class="progress-line" style="color:var(--red)"><em>阻塞</em>${escapeHtml(t.blocked_reason)}</div>` : ""}
+      `;
+      btn.addEventListener("click", () => openDrawer(t.id));
+      return btn;
+    }
+
+    function openDrawer(id) {
+      selectedId = id;
+      const t = TASKS.find((x) => x.id === id);
+      if (!t) return;
+      document.getElementById("drawer").classList.add("open");
+      document.getElementById("d-id").textContent = t.id;
+      const prio = document.getElementById("d-prio");
+      prio.textContent = t.priority;
+      prio.className = "prio " + t.priority.toLowerCase();
+      document.getElementById("d-title").textContent = t.title;
+
+      const body = document.getElementById("d-body");
+      body.innerHTML = `
+        ${t.blocked_reason ? `<div class="alert">⚠ ${escapeHtml(t.blocked_reason)}</div>` : ""}
+        <div class="section">
+          <h4>描述</h4>
+          <p>${escapeHtml(t.description || "—")}</p>
+        </div>
+        <div class="section">
+          <h4>验收标准</h4>
+          <ul>${(t.ac || []).map((a) => `<li>${escapeHtml(a)}</li>`).join("") || "<li>—</li>"}</ul>
+        </div>
+        <div class="section">
+          <h4>Scope</h4>
+          <div class="chips">${(t.scope || []).map((s) => `<span class="chip">${escapeHtml(s)}</span>`).join("") || "—"}</div>
+        </div>
+        ${t.non_scope?.length ? `<div class="section"><h4>Non-scope</h4><div class="chips">${t.non_scope.map((s) => `<span class="chip non">${escapeHtml(s)}</span>`).join("")}</div></div>` : ""}
+        ${t.deps?.length ? `<div class="section"><h4>依赖（声明）</h4><div class="chips">${t.deps.map((d) => `<span class="chip dep">${escapeHtml(d)}</span>`).join("")}</div></div>` : ""}
+        <div class="section">
+          <h4>执行上报（实现侧可选）</h4>
+          <p>${t.progress ? escapeHtml(t.progress) : '<span style="color:var(--text-dim)">无进度上报——正常，引擎不探测内部 Worker</span>'}</p>
+          ${t.claimed_by ? `<p style="margin-top:6px">claimed_by：<span class="claimed">${escapeHtml(t.claimed_by)}</span></p>` : ""}
+          ${t.external ? `<p class="link-row" style="margin-top:8px"><a href="${escapeHtml(t.external)}" target="_blank" rel="noopener">↗ ${escapeHtml(t.external)}</a></p>` : ""}
+        </div>
+        <div class="section">
+          <h4>活动时间线（引擎审计）</h4>
+          <div class="timeline">
+            ${(t.timeline || []).map((e) => `
+              <div class="tl-item ${e.kind}">
+                <div class="tl-time">${escapeHtml(e.t)}</div>
+                <div class="tl-text">${escapeHtml(e.text)}</div>
+                <div class="tl-actor">${escapeHtml(e.actor)}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+      renderBoard();
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    document.getElementById("close-drawer").addEventListener("click", () => {
+      selectedId = null;
+      document.getElementById("drawer").classList.remove("open");
+      renderBoard();
+    });
+
+    document.querySelectorAll(".filter-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".filter-item").forEach((x) => x.classList.remove("active"));
+        el.classList.add("active");
+        filter = el.dataset.filter;
+        renderBoard();
+      });
+    });
+
+    document.getElementById("search").addEventListener("input", (e) => {
+      query = e.target.value.trim();
+      renderBoard();
+    });
+
+    renderBoard();
+  </script>
+</body>
+</html>

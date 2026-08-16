@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>需求引擎 · UI 原型索引</title>
+  <style>
+    body {
+      font-family: "Segoe UI", -apple-system, "PingFang SC", sans-serif;
+      max-width: 740px; margin: 40px auto; padding: 0 20px 60px;
+      color: #1a1a1a; line-height: 1.55; background: #f6f7f9;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .sub { color: #666; margin-bottom: 1.25rem; font-size: 0.95rem; }
+    h2.section { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .06em; color: #888; margin: 1.5rem 0 0.6rem; }
+    .card {
+      background: #fff; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
+      border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .card h3 { font-size: 1.05rem; margin: 0 0 6px; }
+    .card p { margin: 0 0 10px; color: #555; font-size: 0.9rem; }
+    .card a {
+      display: inline-block; margin-right: 8px; margin-top: 4px;
+      padding: 8px 14px; background: #005fb8; color: #fff; text-decoration: none;
+      border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+    }
+    .card a.apple { background: #111; }
+    .card a.ios { background: #007aff; }
+    .note {
+      font-size: 0.88rem; color: #333; background: #fff; border: 1px solid #e5e7eb;
+      padding: 14px 16px; border-radius: 12px; margin-bottom: 8px;
+    }
+    .note h3 { font-size: 0.95rem; margin: 0 0 8px; }
+    .note ul { margin: 0; padding-left: 1.2rem; color: #444; }
+    .note li { margin-bottom: 6px; }
+    code { font-size: 0.84em; background: #eee; padding: 1px 5px; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; }
+  </style>
+</head>
+<body>
+  <h1>需求引擎 UI 原型索引</h1>
+  <p class="sub">PRD v0.2.1 · 2026-07 修订：Windows 窗口化 · iOS UIKit 化</p>
+
+  <h2 class="section">调研结论：官方 UI 方案</h2>
+  <div class="note">
+    <h3>Windows 原生微软风格</h3>
+    <ul>
+      <li><b>首选原生：</b><code>WinUI 3</code> + <code>Windows App SDK</code>（微软当前推荐的桌面 UI 栈，C#/C++ XAML）。</li>
+      <li><b>设计系统：</b>Fluent Design / Fluent 2；长驻窗口推荐 <b>Mica</b> 材质，标题栏可扩展到客户区。</li>
+      <li><b>控件参考：</b>微软商店 <b>WinUI 3 Gallery</b>（官方控件画廊）。</li>
+      <li><b>Web：</b><code>@fluentui/web-components</code> 或 Fluent UI React —— 适合 Web/WebView，但默认是「网页」不是「桌面窗口」。</li>
+      <li><b>本仓库 Mock：</b>用 HTML 模拟 <b>Win11 独立窗口</b>（标题栏/Mica/NavigationView），控件尽量用 Fluent Web Components。</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h3>Apple「官方 UI 库」是什么？</h3>
+    <ul>
+      <li>你记得的是对的，但那是 <b>原生 App 框架</b>，不是像 Fluent 那样的 Web CDN：</li>
+      <li><b>SwiftUI</b> — 跨 iOS / macOS / watchOS 等的首选声明式 UI。</li>
+      <li><b>UIKit</b> — iOS/iPadOS 经典控件（UITableView、UINavigationBar、UITabBar、UISegmentedControl…）。</li>
+      <li><b>AppKit</b> — 仅 macOS 桌面。</li>
+      <li><b>Apple Design Resources</b> — 官网提供的 Figma/Sketch <b>UI Kit 设计模板</b>（给设计/标注用，不是可 npm 安装的前端库）。</li>
+      <li>Apple <b>没有</b>「官方 Web Component 库」给第三方网站用；浏览器里只能做 HIG 高保真模拟。</li>
+      <li>真要上架 iOS/Mac：用 Xcode + SwiftUI，设计对齐 Design Resources。</li>
+    </ul>
+    <table>
+      <tr><th>目标</th><th>官方手段</th><th>本 Mock 角色</th></tr>
+      <tr><td>Windows 桌面产品</td><td>WinUI 3</td><td>窗口视觉与信息架构预览</td></tr>
+      <tr><td>macOS 产品</td><td>SwiftUI / AppKit</td><td>已有 macOS 窗口 Mock</td></tr>
+      <tr><td>iOS 产品</td><td>SwiftUI / UIKit</td><td>采集 / 进度两页模拟 UIKit</td></tr>
+      <tr><td>纯 Web 后台</td><td>Fluent Web / 任意</td><td>可选</td></tr>
+    </table>
+  </div>
+
+  <h2 class="section">打开原型</h2>
+
+  <div class="card">
+    <h3>1. Windows Fluent · 桌面窗口（已重做）</h3>
+    <p>浮在「壁纸」上的独立窗口：Win11 标题栏按钮、Mica 感、NavigationView 侧栏、四栏看板、详情抽屉。需联网加载 Fluent Web Components。</p>
+    <a href="需求引擎_UI_Windows_Fluent.html">打开 Windows 窗口版</a>
+  </div>
+
+  <div class="card">
+    <h3>2. Apple macOS · 与 Windows 全功能对齐</h3>
+    <p>流量灯窗口 + 侧栏 + 看板（你反馈风格统一，保持）。</p>
+    <a class="apple" href="需求引擎_UI_Apple_macOS.html">打开 macOS 版</a>
+  </div>
+
+  <div class="card">
+    <h3>3. iOS · 全功能单 App（采集+进度+三种项目切换）</h3>
+    <p>Dynamic Island 机模、状态栏、Large Title、Inset Grouped 列表、标准 Tab Bar；主路径=写 Todo。</p>
+    <a class="ios" href="需求引擎_UI_Apple_iOS_Capture.html">打开 iOS 采集</a>
+  </div>
+
+  <div class="card">
+    <h3>4. iOS · 进度（UIKit 强化）</h3>
+    <p>UINavigationBar + UISegmentedControl 四态 + Inset Grouped；看阻塞/进度。</p>
+    <a class="ios" href="需求引擎_UI_Apple_iOS_Board.html">打开进度（跳转合并版）</a>
+  </div>
+
+  <div class="card">
+    <h3>5. 早期深色 Web Mock</h3>
+    <p>对照用。</p>
+    <a class="apple" href="需求引擎_UI_Mock.html" style="background:#444">打开深色版</a>
+  </div>
+</body>
+</html>

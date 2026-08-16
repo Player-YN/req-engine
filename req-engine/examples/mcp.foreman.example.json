@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "req-engine-build": {
+      "command": "C:\\Users\\YOU\\Desktop\\需求引擎\\req-engine\\target\\release\\req-engine.exe",
+      "args": [
+        "mcp",
+        "--pair",
+        "PASTE_build_CODE_FROM_DESKTOP",
+        "--home",
+        "C:\\Users\\YOU\\Desktop\\需求引擎\\req-engine\\data"
+      ]
+    }
+  }
+}

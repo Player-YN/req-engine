@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>需求引擎 · macOS · 全功能</title>
+  <style>
+    :root {
+      --bg: #ececec; --sidebar: rgba(246,246,246,.9); --window: #fff;
+      --sep: rgba(0,0,0,.08); --label: #1d1d1f; --secondary: #6e6e73;
+      --blue: #007aff; --blue-fill: rgba(0,122,255,.12);
+      --green: #34c759; --orange: #ff9f0a; --red: #ff3b30; --purple: #af52de;
+      --radius: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: grid; place-items: center; padding: 48px 16px 36px;
+      background: linear-gradient(160deg, #c9d6ff 0%, #e2e2e2 45%, #f5e6d3 100%);
+      color: var(--label); font-size: 13px; -webkit-font-smoothing: antialiased;
+    }
+    .proto-bar {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 200;
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center;
+      background: rgba(30,30,30,.9); color: #fff; padding: 8px 12px; border-radius: 12px;
+      font-size: 12px; max-width: 96vw;
+    }
+    .proto-bar button {
+      border: 1px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+      border-radius: 8px; padding: 5px 10px; font: inherit; cursor: pointer;
+    }
+    .proto-bar button.on { background: #fff; color: #111; font-weight: 600; border-color: #fff; }
+
+    .window {
+      width: min(1280px, 100%); height: min(820px, calc(100vh - 80px));
+      background: var(--bg); border-radius: 12px;
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,.12), 0 16px 48px rgba(0,0,0,.18);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .traffic {
+      height: 52px; display: flex; align-items: center; padding: 0 16px;
+      background: var(--sidebar); backdrop-filter: blur(40px); border-bottom: 0.5px solid var(--sep);
+    }
+    .dots { display: flex; gap: 8px; margin-right: 12px; }
+    .dots i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+    .c { background: #ff5f57; } .m { background: #febc2e; } .g { background: #28c840; }
+    .traffic h1 { flex: 1; text-align: center; font-size: 13px; font-weight: 600; margin-right: 48px; }
+
+    body.mode-tabs .project-tabs { display: flex; }
+    .project-tabs {
+      display: none; align-items: flex-end; gap: 2px; padding: 0 10px;
+      background: rgba(0,0,0,.04); border-bottom: 0.5px solid var(--sep); min-height: 34px; overflow-x: auto;
+    }
+    .ptab {
+      display: flex; align-items: center; gap: 8px; max-width: 160px; height: 30px;
+      padding: 0 12px; border-radius: 8px 8px 0 0; border: 0.5px solid transparent;
+      background: transparent; font: inherit; font-size: 12px; color: var(--secondary); cursor: pointer;
+      position: relative; top: 1px;
+    }
+    .ptab.on { background: #fff; color: var(--label); font-weight: 600; border-color: var(--sep); }
+    .ptab .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .ptab .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ptab-add {
+      width: 28px; height: 26px; margin: 0 4px 2px; border-radius: 6px;
+      border: 1px dashed var(--sep); background: transparent; cursor: pointer; color: var(--secondary);
+    }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+      background: rgba(255,255,255,.55); border-bottom: 0.5px solid var(--sep);
+    }
+    .seg { display: inline-flex; background: rgba(0,0,0,.06); border-radius: 8px; padding: 2px; }
+    .seg button {
+      border: none; background: transparent; padding: 5px 12px; border-radius: 6px;
+      font: inherit; font-size: 12px; color: var(--secondary); cursor: pointer;
+    }
+    .seg button.on { background: #fff; color: var(--label); font-weight: 600; box-shadow: 0 0.5px 1px rgba(0,0,0,.12); }
+    .search {
+      height: 28px; border-radius: 6px; border: none; background: rgba(0,0,0,.06);
+      padding: 0 10px; font: inherit; font-size: 12px; min-width: 160px;
+    }
+    .search:focus { outline: 2px solid var(--blue); background: #fff; }
+    .spacer { flex: 1; }
+    .btn {
+      height: 28px; padding: 0 12px; border-radius: 6px; border: none;
+      font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-plain { background: rgba(0,0,0,.06); color: var(--label); }
+
+    body.mode-dropdown .dd-wrap { display: block; }
+    .dd-wrap { display: none; position: relative; }
+    .dd-btn {
+      display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px;
+      border-radius: 6px; border: none; background: rgba(0,0,0,.06); font: inherit; cursor: pointer; min-width: 140px;
+    }
+    .dd-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dd-menu {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 240px;
+      background: #fff; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.14);
+      border: 0.5px solid var(--sep); z-index: 50; padding: 4px;
+    }
+    .dd-menu.open { display: block; }
+    .dd-item {
+      display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
+      border: none; background: transparent; font: inherit; border-radius: 6px; cursor: pointer; text-align: left;
+    }
+    .dd-item:hover { background: rgba(0,0,0,.04); }
+    .dd-item.on { background: var(--blue-fill); color: var(--blue); font-weight: 600; }
+    .dd-item .meta { margin-left: auto; font-size: 11px; color: var(--secondary); font-weight: 400; }
+    .dd-sep { height: 0.5px; background: var(--sep); margin: 4px 0; }
+
+    .shell { display: flex; flex: 1; min-height: 0; }
+
+    body.mode-sidebar .conv-rail { display: flex; }
+    .conv-rail {
+      display: none; width: 220px; flex-shrink: 0; flex-direction: column;
+      background: var(--sidebar); border-right: 0.5px solid var(--sep); min-height: 0;
+    }
+    .conv-head { padding: 12px 10px 8px; display: flex; align-items: center; }
+    .conv-head h2 { font-size: 13px; font-weight: 600; flex: 1; }
+    .conv-new {
+      width: 26px; height: 26px; border: none; border-radius: 6px; background: var(--blue);
+      color: #fff; font-size: 16px; cursor: pointer;
+    }
+    .conv-search {
+      margin: 0 10px 8px; height: 28px; border-radius: 6px; border: none;
+      background: rgba(0,0,0,.06); padding: 0 10px; font: inherit; font-size: 12px; width: calc(100% - 20px);
+    }
+    .conv-list { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+    .conv-item {
+      width: 100%; border: none; background: transparent; text-align: left; font: inherit;
+      padding: 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px;
+    }
+    .conv-item:hover { background: rgba(0,0,0,.04); }
+    .conv-item.on { background: var(--blue); color: #fff; }
+    .conv-item .r1 { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+    .conv-item .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .conv-item .r2 { margin-top: 3px; font-size: 11px; opacity: .75; padding-left: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-item.on .r2 { opacity: .9; }
+
+    .sidebar {
+      width: 190px; background: var(--sidebar); border-right: 0.5px solid var(--sep);
+      padding: 12px 10px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .side-h { font-size: 11px; font-weight: 600; color: var(--secondary); padding: 8px 10px 4px; }
+    .side-item {
+      border: none; background: transparent; text-align: left; font: inherit;
+      padding: 7px 10px; border-radius: 6px; cursor: pointer; display: flex; width: 100%;
+    }
+    .side-item:hover { background: rgba(0,0,0,.04); }
+    .side-item.on { background: var(--blue); color: #fff; }
+    .side-item .c { margin-left: auto; font-size: 12px; opacity: .7; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 4px; }
+    .stat { background: rgba(255,255,255,.7); border-radius: 8px; padding: 8px; border: 0.5px solid var(--sep); }
+    .stat .n { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat .l { font-size: 10px; color: var(--secondary); }
+    .hint { margin-top: auto; font-size: 11px; color: var(--secondary); line-height: 1.45; padding: 10px; border-radius: 8px; background: rgba(0,0,0,.03); }
+
+    .main { flex: 1; position: relative; min-width: 0; overflow: hidden; background: var(--bg); }
+    .board {
+      position: absolute; inset: 0;
+      display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr));
+      overflow-x: auto; overflow-y: hidden;
+    }
+    .col { border-right: 0.5px solid var(--sep); display: flex; flex-direction: column; min-width: 220px; height: 100%; min-height: 0; }
+    .col-h {
+      padding: 14px 14px 8px; font-size: 11px; font-weight: 700; color: var(--secondary);
+      display: flex; gap: 6px; align-items: center;
+    }
+    .col-h span { background: rgba(0,0,0,.06); border-radius: 8px; padding: 0 6px; }
+    .col-h-todo {
+      cursor: pointer; margin: 8px; padding: 8px 10px !important; border-radius: 8px;
+      border: 1px dashed transparent; transition: .15s;
+    }
+    .col-h-todo:hover { background: var(--blue-fill); border-color: rgba(0,122,255,.35); color: var(--blue); }
+    .col-h-todo .def { display: flex; align-items: center; gap: 6px; width: 100%; }
+    .col-h-todo .cre { display: none; align-items: center; gap: 6px; width: 100%; color: var(--blue); font-weight: 600; }
+    .col-h-todo:hover .def { display: none; }
+    .col-h-todo:hover .cre { display: flex; }
+    .col-h-todo .plus {
+      width: 18px; height: 18px; border-radius: 5px; background: var(--blue); color: #fff;
+      display: grid; place-items: center; font-size: 13px;
+    }
+    .col-b { padding: 4px 10px 14px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+    .card {
+      background: var(--window); border-radius: 10px; padding: 12px; border: 0.5px solid rgba(0,0,0,.04);
+      box-shadow: 0 1px 3px rgba(0,0,0,.06); cursor: pointer; text-align: left; font: inherit; color: inherit;
+    }
+    .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    .card.on { box-shadow: 0 0 0 2px var(--blue); }
+    .card.blocked { box-shadow: inset 3px 0 0 var(--red); }
+    .row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 11px; color: var(--secondary); }
+    .mono { font-family: ui-monospace, Menlo, monospace; font-size: 10px; }
+    .tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+    .p0 { background: rgba(255,59,48,.12); color: var(--red); }
+    .p1 { background: rgba(255,159,10,.15); color: #c77700; }
+    .p2 { background: var(--blue-fill); color: var(--blue); }
+    .p3 { background: rgba(0,0,0,.05); color: var(--secondary); }
+    .title { font-weight: 600; font-size: 13px; line-height: 1.35; margin-bottom: 8px; }
+    .meta { font-size: 11px; color: var(--secondary); display: flex; flex-wrap: wrap; gap: 6px 10px; }
+    .prog { margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--sep); font-size: 11px; color: var(--secondary); }
+
+    .drawer {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 0; overflow: hidden;
+      transition: width .22s cubic-bezier(.2,.8,.2,1); background: var(--window); z-index: 20;
+      border-left: 0.5px solid transparent;
+    }
+    .drawer.open { width: min(360px, 42vw); border-left-color: var(--sep); box-shadow: -8px 0 24px rgba(0,0,0,.08); }
+    .di { width: min(360px, 42vw); height: 100%; display: flex; flex-direction: column; min-height: 0; }
+    .dh { padding: 14px 44px 12px 16px; border-bottom: 0.5px solid var(--sep); position: relative; }
+    .dh h2 { font-size: 17px; font-weight: 650; margin-top: 4px; letter-spacing: -.02em; }
+    .dx {
+      position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: none;
+      border-radius: 6px; background: rgba(0,0,0,.05); cursor: pointer; font-size: 14px;
+    }
+    .db { flex: 1; overflow: auto; padding: 14px 16px; min-height: 0; }
+    .db h4 { font-size: 11px; font-weight: 600; color: var(--secondary); margin: 14px 0 6px; }
+    .db p, .db li { font-size: 13px; line-height: 1.5; }
+    .db ul { padding-left: 18px; }
+    .chip { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(0,0,0,.04); margin: 0 4px 4px 0; font-family: ui-monospace, monospace; }
+    .alert { background: rgba(255,59,48,.1); color: var(--red); padding: 10px 12px; border-radius: 8px; font-size: 12px; }
+    .df { padding: 12px 16px; border-top: 0.5px solid var(--sep); display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.28); display: none;
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: min(400px, 92vw); background: #fff; border-radius: 12px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.2); overflow: hidden;
+    }
+    .modal-h { padding: 14px 16px; font-weight: 600; border-bottom: 0.5px solid var(--sep); }
+    .modal-b { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-b label { font-size: 12px; color: var(--secondary); }
+    .modal-b input, .modal-b textarea, .modal-b select {
+      width: 100%; font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px;
+      border: 0.5px solid var(--sep); background: rgba(0,0,0,.03);
+    }
+    .modal-b textarea { min-height: 70px; resize: vertical; }
+    .modal-f { padding: 12px 16px; display: flex; justify-content: flex-end; gap: 8px; background: rgba(0,0,0,.02); }
+
+    .foot-note {
+      position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: rgba(0,0,0,.45); background: rgba(255,255,255,.75);
+      padding: 6px 12px; border-radius: 20px; border: 0.5px solid var(--sep); max-width: 96vw; text-align: center;
+    }
+  </style>
+</head>
+<body class="mode-tabs">
+  <div class="proto-bar">
+    <strong style="margin-right:4px">项目切换</strong>
+    <button type="button" class="on" data-mode="tabs">1 · Tabs</button>
+    <button type="button" data-mode="dropdown">2 · 下拉</button>
+    <button type="button" data-mode="sidebar">3 · 左侧列表</button>
+  </div>
+
+  <div class="window">
+    <div class="traffic">
+      <div class="dots"><i class="c"></i><i class="m"></i><i class="g"></i></div>
+      <h1>需求引擎</h1>
+    </div>
+    <div class="project-tabs" id="project-tabs"></div>
+    <div class="toolbar">
+      <div class="seg"><button type="button" class="on">看板</button><button type="button">列表</button></div>
+      <div class="dd-wrap" id="dd-wrap">
+        <button type="button" class="dd-btn" id="dd-btn">
+          <span class="dot" id="dd-dot"></span>
+          <span id="dd-label">demo-shop</span>
+          <span style="margin-left:auto;opacity:.5">▾</span>
+        </button>
+        <div class="dd-menu" id="dd-menu"></div>
+      </div>
+      <input class="search" id="search" placeholder="搜索当前项目…" />
+      <div class="spacer"></div>
+      <button class="btn btn-plain" type="button" id="status-proj">MCP</button>
+    </div>
+    <div class="shell">
+      <aside class="conv-rail" id="conv-rail">
+        <div class="conv-head"><h2>项目</h2><button type="button" class="conv-new" id="conv-new">+</button></div>
+        <input class="conv-search" id="conv-search" placeholder="搜索项目…" />
+        <div class="conv-list" id="conv-list"></div>
+      </aside>
+      <aside class="sidebar">
+        <div class="side-h">筛选</div>
+        <button class="side-item on" type="button" data-f="all">全部 <span class="c" id="badge-all">0</span></button>
+        <button class="side-item" type="button" data-f="p0">仅 P0 <span class="c" id="badge-p0">0</span></button>
+        <button class="side-item" type="button" data-f="blocked">阻塞 <span class="c" id="badge-blocked">0</span></button>
+        <div class="side-h">本项目</div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="st-todo">0</div><div class="l">需求</div></div>
+          <div class="stat"><div class="n" id="st-doing">0</div><div class="l">进行中</div></div>
+          <div class="stat"><div class="n" id="st-review">0</div><div class="l">审核</div></div>
+          <div class="stat"><div class="n" id="st-done">0</div><div class="l">完成</div></div>
+        </div>
+        <div class="hint" id="mode-hint">当前：顶栏 Tabs</div>
+      </aside>
+      <div class="main">
+        <div class="board" id="board"></div>
+        <aside class="drawer" id="drawer">
+          <div class="di">
+            <div class="dh">
+              <div class="mono" id="d-id" style="color:var(--secondary)">REQ</div>
+              <h2 id="d-title">—</h2>
+              <button type="button" class="dx" id="btn-close-x">✕</button>
+            </div>
+            <div class="db" id="d-body"></div>
+            <div class="df">
+              <button class="btn btn-plain" type="button" id="btn-copy">复制 ID</button>
+              <button class="btn btn-plain" type="button">编辑</button>
+              <button class="btn btn-blue" type="button">确认完成</button>
+              <button class="btn btn-plain" type="button" id="btn-close">关闭</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="new-modal">
+    <div class="modal">
+      <div class="modal-h">新建需求 · <span id="new-modal-proj"></span></div>
+      <div class="modal-b">
+        <div><label>标题</label><input id="new-title" type="text" placeholder="要做什么" /></div>
+        <div><label>描述</label><textarea id="new-desc" placeholder="可选"></textarea></div>
+        <div><label>优先级</label>
+          <select id="new-prio"><option>P0</option><option selected>P1</option><option>P2</option><option>P3</option></select>
+        </div>
+      </div>
+      <div class="modal-f">
+        <button class="btn btn-plain" type="button" id="new-cancel">取消</button>
+        <button class="btn btn-blue" type="button" id="new-submit">创建到待办</button>
+      </div>
+    </div>
+  </div>
+  <div class="foot-note">macOS 全功能 · 与 Windows 同步 · 顶栏切换三种项目切换方案 · 详情浮层不挤四栏</div>
+
+  <script>
+
+    const COLORS = ["#007aff", "#af52de", "#34c759", "#ff9500", "#ff3b30", "#5ac8fa"];
+    const PROJECTS = [
+      {
+        id: "demo-shop", name: "demo-shop", color: COLORS[0], blurb: "电商前台与结算",
+        tasks: [
+          {id:"REQ-018",title:"结算页增加发票抬头可选填写",priority:"P1",status:"todo",scope:["frontend/checkout"],deps:[],updated:"12 分钟前",description:"B 端用户下单时填写发票抬头。",ac:["结算页出现发票抬头","可不填直接下单"],timeline:[{t:"今天 14:02",actor:"planner@codex",text:"创建需求"}]},
+          {id:"REQ-017",title:"搜索结果支持按销量排序",priority:"P2",status:"todo",scope:["frontend/search"],deps:["REQ-012"],updated:"40 分钟前",description:"增加销量排序。",ac:["排序含销量"],timeline:[{t:"今天 13:30",actor:"planner@codex",text:"创建需求"}]},
+          {id:"REQ-016",title:"首页快捷入口（运营可配置）",priority:"P0",status:"todo",scope:["frontend/home"],deps:[],updated:"1 小时前",description:"四个快捷入口。",ac:["首页展示","移动端正常"],timeline:[{t:"今天 12:10",actor:"planner@kimi",text:"创建需求"}]},
+          {id:"REQ-015",title:"购物车数量角标实时更新",priority:"P1",status:"in_progress",scope:["frontend/cart"],deps:[],updated:"3 分钟前",progress:"正在改 Header 订阅 cart store",claimed_by:"grok-foreman",description:"加购后角标立即变化。",ac:["加购角标+1"],timeline:[{t:"今天 14:10",actor:"grok-foreman",text:"claim"}]},
+          {id:"REQ-014",title:"订单列表筛选「近 30 天」",priority:"P2",status:"in_progress",scope:["frontend/orders"],deps:[],updated:"2 分钟前",progress:"API 已通，前端开发中",claimed_by:"grok-foreman",description:"时间快捷筛选。",ac:["近7/30天"],timeline:[{t:"今天 14:20",actor:"grok-foreman",text:"claim"}]},
+          {id:"REQ-013",title:"支付回调幂等加固",priority:"P0",status:"blocked",scope:["backend/pay"],deps:[],updated:"26 小时前",claimed_by:"grok-foreman",blocked_reason:"等待支付沙箱凭证",description:"重复回调不重复发货。",ac:["notify_id 幂等"],timeline:[{t:"昨天",actor:"grok-foreman",text:"blocked"}]},
+          {id:"REQ-012",title:"搜索 API 返回 sales_count",priority:"P1",status:"review",scope:["api/search"],deps:[],updated:"20 分钟前",claimed_by:"grok-foreman",external:"https://example.com/pr/81",description:"为销量排序提供字段。",ac:["含 sales_count"],timeline:[{t:"今天",actor:"grok-foreman",text:"review"}]},
+          {id:"REQ-011",title:"登录页错误文案统一",priority:"P3",status:"review",scope:["frontend/auth"],deps:[],updated:"1 小时前",claimed_by:"grok-foreman",description:"文案对齐设计规范。",ac:["与设计稿一致"],timeline:[{t:"今天",actor:"grok-foreman",text:"review"}]},
+          {id:"REQ-008",title:"页脚版权年份动态化",priority:"P3",status:"done",scope:["frontend/layout"],deps:[],updated:"2 天前",description:"页脚年份取当前年。",ac:["当前公历年"],timeline:[{t:"2天前",actor:"human",text:"done"}]},
+          {id:"REQ-007",title:"移除废弃 /v1/legacy-cart",priority:"P2",status:"done",scope:["api/cart"],deps:[],updated:"4 天前",description:"确认无流量后删除。",ac:["路由404"],timeline:[{t:"4天前",actor:"grok-foreman",text:"done"}]},
+        ],
+      },
+      {
+        id: "trace-sight", name: "TraceSight", color: COLORS[1], blurb: "可观测与轨迹分析",
+        tasks: [
+          {id:"TS-021",title:"Session 时间线支持折叠 thinking",priority:"P1",status:"todo",scope:["frontend/timeline"],deps:[],updated:"1 小时前",description:"长 thinking 默认折叠。",ac:["默认折叠","一键展开"],timeline:[{t:"今天",actor:"planner",text:"创建"}]},
+          {id:"TS-020",title:"导出 run 为 JSONL",priority:"P2",status:"in_progress",scope:["api/export"],deps:[],updated:"30 分钟前",progress:"序列化字段对齐中",claimed_by:"codex-foreman",description:"供外部分析。",ac:["含 tool 事件"],timeline:[{t:"今天",actor:"codex-foreman",text:"claim"}]},
+          {id:"TS-019",title:"项目级采样率配置",priority:"P0",status:"review",scope:["backend/config"],deps:[],updated:"2 小时前",claimed_by:"codex-foreman",description:"按项目设置 trace 采样。",ac:["配置可热更新"],timeline:[{t:"今天",actor:"codex-foreman",text:"review"}]},
+          {id:"TS-015",title:"删除旧 demo 路由",priority:"P3",status:"done",scope:["api"],deps:[],updated:"3 天前",description:"清理历史接口。",ac:["404"],timeline:[{t:"3天前",actor:"human",text:"done"}]},
+        ],
+      },
+      {
+        id: "req-engine", name: "需求引擎", color: COLORS[2], blurb: "本产品本体",
+        tasks: [
+          {id:"RE-003",title:"MCP claim 原子性单测",priority:"P0",status:"todo",scope:["engine/mcp"],deps:[],updated:"20 分钟前",description:"防双领。",ac:["并发 claim 仅一人成功"],timeline:[{t:"今天",actor:"planner",text:"创建"}]},
+          {id:"RE-002",title:"看板四栏映射文档",priority:"P2",status:"in_progress",scope:["docs"],deps:[],updated:"1 小时前",progress:"写 PRD 状态映射",claimed_by:"human",description:"状态机与 UI 栏对齐。",ac:["表格完整"],timeline:[{t:"今天",actor:"human",text:"进行中"}]},
+          {id:"RE-001",title:"引擎零 LLM 边界检查清单",priority:"P1",status:"done",scope:["docs"],deps:[],updated:"昨天",description:"硬约束列表。",ac:["PRD 写明"],timeline:[{t:"昨天",actor:"human",text:"done"}]},
+        ],
+      },
+      {
+        id: "mobile-h5", name: "mobile-h5", color: COLORS[3], blurb: "活动 H5",
+        tasks: [
+          {id:"H5-008",title:"分享卡片 Open Graph",priority:"P1",status:"todo",scope:["frontend/share"],deps:[],updated:"昨天",description:"微信分享图。",ac:["标题摘要图"],timeline:[{t:"昨天",actor:"planner",text:"创建"}]},
+          {id:"H5-007",title:"iOS 安全区适配",priority:"P1",status:"blocked",scope:["frontend/layout"],deps:[],updated:"2 天前",blocked_reason:"等设计标注 safe-area",claimed_by:"worker",description:"底部按钮上移。",ac:["全面屏不遮挡"],timeline:[{t:"2天前",actor:"worker",text:"blocked"}]},
+          {id:"H5-005",title:"埋点 PV/UV",priority:"P2",status:"done",scope:["analytics"],deps:[],updated:"5 天前",description:"基础埋点。",ac:["控制台可见"],timeline:[{t:"5天前",actor:"worker",text:"done"}]},
+        ],
+      },
+    ];
+    const COLS = [
+      { title: "需求", statuses: ["todo"] },
+      { title: "进行中", statuses: ["in_progress","blocked","scheduled"] },
+      { title: "审核中", statuses: ["review"] },
+      { title: "已完成", statuses: ["done"] },
+    ];
+
+    const MODE_HINT = {
+      tabs: "当前：顶栏 Tabs（浏览器标签感）。",
+      dropdown: "当前：工具栏下拉切换项目。",
+      sidebar: "当前：左侧会话式项目列表。",
+    };
+    let mode = "tabs", projectId = "demo-shop", filter = "all", q = "", selected = null, convQ = "";
+    const esc = s => String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+    const project = () => PROJECTS.find(p => p.id === projectId) || PROJECTS[0];
+    const tasks = () => project().tasks;
+    const countOf = (list, pred) => list.filter(pred).length;
+
+    function setMode(m) {
+      mode = m;
+      document.body.classList.remove("mode-tabs","mode-dropdown","mode-sidebar");
+      document.body.classList.add("mode-" + m);
+      document.querySelectorAll(".proto-bar button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+      document.getElementById("mode-hint").textContent = MODE_HINT[m];
+      closeDd();
+      renderChrome();
+      render();
+    }
+    function selectProject(id) {
+      if (!PROJECTS.some(p => p.id === id)) return;
+      projectId = id; selected = null; closeDrawer(); closeDd();
+      renderChrome(); render();
+    }
+    function addProject() {
+      const name = prompt("新项目名称", "new-project");
+      if (!name?.trim()) return;
+      const id = name.trim().toLowerCase().replace(/\s+/g,"-") + "-" + Date.now().toString(36).slice(-4);
+      PROJECTS.push({ id, name: name.trim(), color: COLORS[PROJECTS.length % COLORS.length], blurb: "新建项目", tasks: [] });
+      selectProject(id);
+    }
+    function renderChrome() {
+      const p = project();
+      document.getElementById("dd-label").textContent = p.name;
+      document.getElementById("dd-dot").style.background = p.color;
+      document.getElementById("new-modal-proj").textContent = p.name;
+      document.getElementById("status-proj").textContent = p.name;
+
+      const tabs = document.getElementById("project-tabs");
+      tabs.innerHTML = PROJECTS.map(x => `
+        <button type="button" class="ptab ${x.id===projectId?"on":""}" data-id="${esc(x.id)}">
+          <span class="dot" style="background:${x.color}"></span>
+          <span class="name">${esc(x.name)}</span>
+        </button>`).join("") + `<button type="button" class="ptab-add" id="tab-add">+</button>`;
+      tabs.querySelectorAll(".ptab[data-id]").forEach(el => el.addEventListener("click", () => selectProject(el.dataset.id)));
+      document.getElementById("tab-add")?.addEventListener("click", addProject);
+
+      const menu = document.getElementById("dd-menu");
+      menu.innerHTML = PROJECTS.map(x => `
+        <button type="button" class="dd-item ${x.id===projectId?"on":""}" data-id="${esc(x.id)}">
+          <span class="dot" style="width:8px;height:8px;border-radius:50%;background:${x.color}"></span>
+          ${esc(x.name)}<span class="meta">${x.tasks.length}</span>
+        </button>`).join("") + `<div class="dd-sep"></div><button type="button" class="dd-item" id="dd-add" style="color:var(--blue)">＋ 新建项目</button>`;
+      menu.querySelectorAll(".dd-item[data-id]").forEach(el => el.addEventListener("click", () => selectProject(el.dataset.id)));
+      document.getElementById("dd-add")?.addEventListener("click", addProject);
+
+      const cq = convQ.trim().toLowerCase();
+      const items = PROJECTS.filter(x => !cq || x.name.toLowerCase().includes(cq) || x.blurb.toLowerCase().includes(cq));
+      document.getElementById("conv-list").innerHTML = items.map(x => {
+        const active = x.tasks.filter(t => t.status==="in_progress"||t.status==="blocked").length;
+        return `<button type="button" class="conv-item ${x.id===projectId?"on":""}" data-id="${esc(x.id)}">
+          <div class="r1"><span class="dot" style="background:${x.color}"></span>${esc(x.name)}</div>
+          <div class="r2">${esc(x.blurb)} · ${active?active+" 进行中":x.tasks.length+" 任务"}</div>
+        </button>`;
+      }).join("");
+      document.querySelectorAll("#conv-list .conv-item").forEach(el => el.addEventListener("click", () => selectProject(el.dataset.id)));
+    }
+    function ok(t) {
+      if (filter==="p0" && t.priority!=="P0") return false;
+      if (filter==="blocked" && t.status!=="blocked") return false;
+      if (q && !(t.id+t.title).toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    }
+    function updateStats(list) {
+      document.getElementById("badge-all").textContent = list.length;
+      document.getElementById("badge-p0").textContent = countOf(list, t => t.priority==="P0");
+      document.getElementById("badge-blocked").textContent = countOf(list, t => t.status==="blocked");
+      document.getElementById("st-todo").textContent = countOf(list, t => t.status==="todo");
+      document.getElementById("st-doing").textContent = countOf(list, t => ["in_progress","blocked","scheduled"].includes(t.status));
+      document.getElementById("st-review").textContent = countOf(list, t => t.status==="review");
+      document.getElementById("st-done").textContent = countOf(list, t => t.status==="done");
+    }
+    function closeDrawer() {
+      selected = null;
+      document.getElementById("drawer").classList.remove("open");
+      render();
+    }
+    function openDrawer(id) {
+      if (selected === id) { closeDrawer(); return; }
+      selected = id;
+      const t = tasks().find(x => x.id === id); if (!t) return;
+      document.getElementById("drawer").classList.add("open");
+      document.getElementById("d-id").textContent = t.id + " · " + t.priority + " · " + t.status;
+      document.getElementById("d-title").textContent = t.title;
+      document.getElementById("d-body").innerHTML = `
+        ${t.blocked_reason?`<div class="alert">${esc(t.blocked_reason)}</div>`:""}
+        <h4>项目</h4><p>${esc(project().name)}</p>
+        <h4>描述</h4><p>${esc(t.description)}</p>
+        <h4>验收标准</h4><ul>${(t.ac||[]).map(a=>`<li>${esc(a)}</li>`).join("")||"<li>—</li>"}</ul>
+        <h4>Scope</h4><div>${(t.scope||[]).map(s=>`<span class="chip">${esc(s)}</span>`).join("")||"—"}</div>
+        <h4>执行上报</h4><p style="color:var(--secondary);font-size:12px">${t.progress?esc(t.progress):"无 — 引擎不探测 Worker"}</p>
+        ${t.claimed_by?`<p style="font-size:12px;margin-top:6px">claimed_by: <code>${esc(t.claimed_by)}</code></p>`:""}
+        <h4>时间线</h4><ul>${(t.timeline||[]).map(e=>`<li>${esc(e.t)} · ${esc(e.actor)} — ${esc(e.text)}</li>`).join("")}</ul>`;
+      render();
+    }
+    function render() {
+      const list = tasks();
+      updateStats(list);
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      COLS.forEach(col => {
+        const items = list.filter(ok).filter(t => col.statuses.includes(t.status));
+        const sec = document.createElement("section");
+        sec.className = "col";
+        const isTodo = col.title === "需求";
+        const head = isTodo
+          ? `<button type="button" class="col-h col-h-todo" id="col-new-req">
+              <span class="def"><b style="color:inherit">${col.title}</b><span>${items.length}</span></span>
+              <span class="cre"><span class="plus">+</span>新建需求</span>
+            </button>`
+          : `<div class="col-h">${col.title} <span>${items.length}</span></div>`;
+        sec.innerHTML = head + `<div class="col-b"></div>`;
+        const body = sec.querySelector(".col-b");
+        if (!items.length) body.innerHTML = `<div style="text-align:center;color:var(--secondary);padding:16px;font-size:12px">暂无任务</div>`;
+        items.forEach(t => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "card" + (t.status==="blocked"?" blocked":"") + (selected===t.id?" on":"");
+          b.innerHTML = `<div class="row"><span class="mono">${esc(t.id)}</span><span class="tag ${t.priority.toLowerCase()}">${t.priority}</span>${t.status==="blocked"?'<span class="tag p0">阻塞</span>':""}</div>
+            <div class="title">${esc(t.title)}</div>
+            <div class="meta">${t.scope?.[0]?`<span>${esc(t.scope[0])}</span>`:""}${t.deps?.length?`<span>依赖 ${t.deps.length}</span>`:""}<span>${esc(t.updated)}</span></div>
+            ${t.progress?`<div class="prog">${esc(t.progress)}</div>`:""}
+            ${t.blocked_reason?`<div class="prog" style="color:var(--red)">${esc(t.blocked_reason)}</div>`:""}`;
+          b.addEventListener("click", e => { e.stopPropagation(); openDrawer(t.id); });
+          body.appendChild(b);
+        });
+        board.appendChild(sec);
+      });
+      document.getElementById("col-new-req")?.addEventListener("click", e => {
+        e.preventDefault(); e.stopPropagation(); openNew();
+      });
+    }
+    function openNew() {
+      document.getElementById("new-modal").classList.add("open");
+      document.getElementById("new-title").value = "";
+      document.getElementById("new-desc").value = "";
+      document.getElementById("new-prio").value = "P1";
+      document.getElementById("new-modal-proj").textContent = project().name;
+      setTimeout(() => document.getElementById("new-title").focus(), 30);
+    }
+    function closeNew() { document.getElementById("new-modal").classList.remove("open"); }
+    function submitNew() {
+      const title = document.getElementById("new-title").value.trim();
+      if (!title) { document.getElementById("new-title").focus(); return; }
+      const desc = document.getElementById("new-desc").value.trim() || title;
+      const priority = document.getElementById("new-prio").value;
+      const id = projectId.slice(0,2).toUpperCase() + "-" + String(100 + project().tasks.length + 1).slice(-3);
+      project().tasks.unshift({
+        id, title, priority, status: "todo", scope: [], deps: [], updated: "刚刚",
+        description: desc, ac: [], timeline: [{ t: "刚刚", actor: "human", text: "创建需求" }],
+      });
+      closeNew(); renderChrome(); render(); openDrawer(id);
+    }
+    function closeDd() { document.getElementById("dd-menu").classList.remove("open"); }
+
+    document.querySelectorAll(".proto-bar button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    document.getElementById("dd-btn").addEventListener("click", e => { e.stopPropagation(); document.getElementById("dd-menu").classList.toggle("open"); });
+    document.addEventListener("click", closeDd);
+    document.getElementById("dd-menu").addEventListener("click", e => e.stopPropagation());
+    document.getElementById("conv-search").addEventListener("input", e => { convQ = e.target.value; renderChrome(); });
+    document.getElementById("conv-new").addEventListener("click", addProject);
+    document.getElementById("board").addEventListener("click", e => { if (!e.target.closest(".card") && selected) closeDrawer(); });
+    document.getElementById("btn-close").addEventListener("click", closeDrawer);
+    document.getElementById("btn-close-x").addEventListener("click", closeDrawer);
+    document.getElementById("btn-copy").addEventListener("click", () => { if (selected) navigator.clipboard?.writeText(selected); });
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        if (document.getElementById("new-modal").classList.contains("open")) closeNew();
+        else if (selected) closeDrawer();
+        closeDd();
+      }
+    });
+    document.querySelectorAll(".side-item").forEach(el => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".side-item").forEach(x => x.classList.remove("on"));
+        el.classList.add("on"); filter = el.dataset.f; render();
+      });
+    });
+    document.getElementById("search").addEventListener("input", e => { q = e.target.value; render(); });
+    document.getElementById("new-cancel").addEventListener("click", closeNew);
+    document.getElementById("new-submit").addEventListener("click", submitNew);
+    document.getElementById("new-modal").addEventListener("click", e => { if (e.target.id === "new-modal") closeNew(); });
+
+    setMode("tabs");
+  </script>
+</body>
+</html>
