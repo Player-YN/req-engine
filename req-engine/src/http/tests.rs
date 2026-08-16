@@ -589,7 +589,10 @@ async fn pair_codes_issue_and_rotate() {
     assert!(copy.contains("--pair"));
     assert!(copy.contains("不要自己下场") || copy.contains("不要改业务代码"));
     assert!(copy.contains("通读代码工作区"));
-    assert!(copy.contains("不要用 tokens.txt") || copy.contains("不要用全局 tokens.txt"));
+    assert!(copy.contains("stdio"));
+    assert!(copy.contains("--pair"));
+    assert!(!copy.contains("claim"));
+    assert!(!copy.contains("--home"));
     assert!(!copy.contains("你是谁"));
     assert!(!copy.contains("产品：需求引擎"));
     let copy_l = copy.to_ascii_lowercase();

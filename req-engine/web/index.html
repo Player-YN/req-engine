@@ -688,7 +688,7 @@
         <button type="button" id="win-min" title="最小化" aria-label="最小化">─</button>
         <button type="button" id="win-max" title="最大化" aria-label="最大化">□</button>
         <button type="button" id="win-quit" class="win-quit" title="退出程序（结束进程）" aria-label="退出程序">退出</button>
-        <button type="button" id="win-close" class="win-close" title="关闭到托盘（进程还在）" aria-label="关闭到托盘">✕</button>
+        <button type="button" id="win-close" class="win-close" title="关闭并退出进程" aria-label="关闭并退出">✕</button>
       </div>
     </div>
 
@@ -1541,7 +1541,7 @@
       if (!projectId) return;
       const pid = projectId;
       try {
-        const data = await api("/projects/" + encodeURIComponent(pid) + "/pair-codes");
+        const data = await api("/projects/" + encodeURIComponent(pid) + "/pair-codes?ts=" + Date.now());
         if (projectId !== pid) return;
         PAIR_CODES = {
           projectId: pid,
@@ -1579,9 +1579,7 @@
         toast("请先选择一个项目");
         return;
       }
-      if (!PAIR_CODES || PAIR_CODES.projectId !== projectId) {
-        await loadPairCodes();
-      }
+      await loadPairCodes();
       const pack = PAIR_CODES && PAIR_CODES[seat];
       if (!pack || !pack.copy_text) {
         toast("没有可复制的接入包，请先作废重发");

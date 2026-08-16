@@ -12,10 +12,19 @@ If Not fso.FolderExists(engine) Then
 End If
 
 exe = ""
-If fso.FileExists(fso.BuildPath(engine, "target\release\req-engine.exe")) Then
-  exe = fso.BuildPath(engine, "target\release\req-engine.exe")
-ElseIf fso.FileExists(fso.BuildPath(engine, "target\debug\req-engine.exe")) Then
-  exe = fso.BuildPath(engine, "target\debug\req-engine.exe")
+Dim rel, dbg
+rel = fso.BuildPath(engine, "target\release\req-engine.exe")
+dbg = fso.BuildPath(engine, "target\debug\req-engine.exe")
+If fso.FileExists(rel) And fso.FileExists(dbg) Then
+  If fso.GetFile(dbg).DateLastModified > fso.GetFile(rel).DateLastModified Then
+    exe = dbg
+  Else
+    exe = rel
+  End If
+ElseIf fso.FileExists(rel) Then
+  exe = rel
+ElseIf fso.FileExists(dbg) Then
+  exe = dbg
 End If
 
 If exe = "" Then
@@ -26,10 +35,8 @@ If exe = "" Then
   WScript.Quit 1
 End If
 
-dataDir = fso.BuildPath(engine, "data")
-If Not fso.FolderExists(dataDir) Then fso.CreateFolder dataDir
-
 sh.CurrentDirectory = engine
 sh.Environment("Process")("REQ_ENGINE_SILENT") = "1"
-cmd = """" & exe & """ desktop --home """ & dataDir & """ --port 7420"
+' Same data home as the copy-pack MCP args: REQ_ENGINE_HOME or %USERPROFILE%\.req-engine
+cmd = """" & exe & """ desktop --port 7420"
 sh.Run cmd, 0, False

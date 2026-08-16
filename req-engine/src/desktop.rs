@@ -610,7 +610,7 @@ fn open_window(
     let mut tray_holder: Option<tray_icon::TrayIcon> = None;
     #[cfg(windows)]
     let mut tray_tried = false;
-    let mut tray_ok = false;
+    let mut _tray_ok = false;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -626,11 +626,11 @@ fn open_window(
                         Ok(t) => {
                             tray_holder = Some(t);
                             let _ = tray_holder.as_ref();
-                            tray_ok = true;
+                            _tray_ok = true;
                             log_line(&home_for_loop, "tray icon ready (close hides; tray 退出 kills)");
                         }
                         Err(e) => {
-                            tray_ok = false;
+                            _tray_ok = false;
                             log_line(
                                 &home_for_loop,
                                 &format!("tray icon failed (✕ will exit): {e}"),
@@ -659,13 +659,9 @@ fn open_window(
                 window.set_maximized(!window.is_maximized());
             }
             Event::UserEvent(DesktopEvent::WinClose) => {
-                if tray_ok {
-                    window.set_visible(false);
-                } else {
-                    running.store(false, Ordering::SeqCst);
-                    log_line(&home_for_loop, "close without tray — process exiting");
-                    std::process::exit(0);
-                }
+                running.store(false, Ordering::SeqCst);
+                log_line(&home_for_loop, "window close — process exiting");
+                std::process::exit(0);
             }
             Event::UserEvent(DesktopEvent::TrayShow) => {
                 window.set_visible(true);
@@ -686,13 +682,9 @@ fn open_window(
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                if tray_ok {
-                    window.set_visible(false);
-                } else {
-                    running.store(false, Ordering::SeqCst);
-                    log_line(&home_for_loop, "CloseRequested without tray — process exiting");
-                    std::process::exit(0);
-                }
+                running.store(false, Ordering::SeqCst);
+                log_line(&home_for_loop, "CloseRequested — process exiting");
+                std::process::exit(0);
             }
             _ => {}
         }
