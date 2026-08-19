@@ -43,7 +43,7 @@ In another terminal (or after API is up):
 **Browser UI**
 
 1. Read admin token from `data\tokens.txt` (`admin=...`).
-2. Open `http://127.0.0.1:7420/` (preferred) or [`../demo/需求引擎_UI_Windows_Fluent.html`](../demo/需求引擎_UI_Windows_Fluent.html).
+2. Open `http://127.0.0.1:7420/` (runtime UI from `web/`). [`../demo/`](../demo/) HTML files are static mocks, not the shipped board.
 3. Paste Base `http://127.0.0.1:7420/v1` + admin token if not auto-injected.
 4. Expect 4 seed projects; create cards; **确认完成** as admin.
 
@@ -195,26 +195,17 @@ See **[WEB.md](../WEB.md)** for the Fluent board:
 stdio MCP server via the official Rust SDK ([`rmcp`](https://crates.io/crates/rmcp)).  
 **stdout is the MCP wire** — logs go to **stderr** only. No LLM calls inside the engine.
 
+Product path is a **per-project pair code** from the desktop (**Copy discuss** / **Copy build**). `--role` + `--token` is a debug back door — do not ship it.
+
 ```powershell
-$env:REQ_ENGINE_HOME = ".\data"
-$planner = (Select-String -Path .\data\tokens.txt -Pattern '^planner=').Line -replace '^planner=',''
-$foreman = (Select-String -Path .\data\tokens.txt -Pattern '^foreman=').Line -replace '^foreman=',''
-
-cargo run -- mcp --role planner --token $planner --home ./data
-cargo run -- mcp --role foreman --token $foreman --home ./data
-
-# Or via env
-$env:REQ_ENGINE_TOKEN = $planner
-cargo run -- mcp --role planner --home ./data
+cargo run -- mcp --pair disc_… --home ./data
+cargo run -- mcp --pair build_… --home ./data
 ```
 
-**Auth:** `--token` or `REQ_ENGINE_TOKEN`. Role is resolved from the DB hash.  
-CLI `--role` **must match** the token role; **admin** tokens may use either surface.
-
-| Role | Tools |
-|------|--------|
-| **planner** | `list_projects`, `create_requirement`, `list_requirements`, `get_requirement`, `update_requirement` (todo only), `cancel_requirement` (todo only for planner) |
-| **foreman** | `list_ready_tasks`, `get_requirement`, `claim_task`, `report_progress`, `submit_for_review`, `release_task` |
+| Seat | Pair | Tools |
+|------|------|--------|
+| **discuss** (`disc_`) | planner surface | `list_requirements`, `get_requirement`, `create_requirement`, `update_requirement` (todo only), `cancel_requirement` (todo only) |
+| **build** (`build_`) | foreman surface | `list_ready_tasks`, `get_requirement`, `claim_task`, `report_progress`, `submit_for_review`, `release_task` |
 
 **Not exposed on MCP:** free-form `set_status`, `complete_review` (admin/HTTP only), hard delete.
 
@@ -222,14 +213,19 @@ CLI `--role` **must match** the token role; **admin** tokens may use either surf
 
 ### Client config example
 
-```toml
-[mcp_servers.req-engine-planner]
-command = "path/to/req-engine"
-args = ["mcp", "--role", "planner", "--token", "...", "--home", "..."]
-
-[mcp_servers.req-engine-foreman]
-command = "path/to/req-engine"
-args = ["mcp", "--role", "foreman", "--token", "...", "--home", "..."]
+```json
+{
+  "mcpServers": {
+    "req-engine-discuss": {
+      "command": "path/to/req-engine",
+      "args": ["mcp", "--pair", "disc_…", "--home", "path/to/data"]
+    },
+    "req-engine-build": {
+      "command": "path/to/req-engine",
+      "args": ["mcp", "--pair", "build_…", "--home", "path/to/data"]
+    }
+  }
+}
 ```
 
 ## Smoke & tests
@@ -263,7 +259,8 @@ Includes:
 | `req-engine seed` | Implemented (idempotent-ish) |
 | `req-engine serve --host 127.0.0.1 --port 7420` | Implemented |
 | `req-engine desktop [--seed-if-missing]` | Implemented (no demo seed by default) |
-| `req-engine mcp --role planner\|foreman` | Implemented (stdio) |
+| `req-engine mcp --pair disc_\|build_…` | Implemented (stdio; product path) |
+| `req-engine mcp --role planner\|foreman` | Implemented (stdio; **debug only**) |
 
 Binary name: **`req-engine`**.
 

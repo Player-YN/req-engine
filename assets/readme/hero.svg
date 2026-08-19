@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">req-engine</title>
+  <desc id="desc">Zero-LLM local verb store. Status is the result of a verb, not set_status. Discuss and build MCP seats bind agents; a human completes review. The engine never calls a model. Board panel is a schematic, not a screenshot.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8eef5"/>
+      <stop offset="1" stop-color="#f3f4f6"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0078d4"/>
+      <stop offset="1" stop-color="#5c2d91"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="400" rx="16" fill="url(#bg)"/>
+
+  <g id="title-block">
+    <text x="56" y="68" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="600" fill="#005fb8" letter-spacing="1.6">LOCAL · ZERO-LLM STORE</text>
+    <text x="56" y="132" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="54" font-weight="700" fill="#1a1a1a">req-engine</text>
+    <text x="56" y="178" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" fill="#1a1a1a">Verb-based requirements on disk.</text>
+    <text x="56" y="210" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" fill="#1a1a1a">The engine never calls a model.</text>
+
+    <rect x="56" y="240" width="86" height="32" rx="6" fill="#ffffff" stroke="#c5cdd6"/>
+    <text x="99" y="261" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Segoe UI, monospace" font-size="16" fill="#1a1a1a">Rust</text>
+    <rect x="150" y="240" width="98" height="32" rx="6" fill="#ffffff" stroke="#c5cdd6"/>
+    <text x="199" y="261" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Segoe UI, monospace" font-size="16" fill="#1a1a1a">SQLite</text>
+    <rect x="256" y="240" width="148" height="32" rx="6" fill="#ffffff" stroke="#c5cdd6"/>
+    <text x="330" y="261" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Segoe UI, monospace" font-size="16" fill="#1a1a1a">MCP --pair</text>
+    <rect x="412" y="240" width="126" height="32" rx="6" fill="#ffffff" stroke="#c5cdd6"/>
+    <text x="475" y="261" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Segoe UI, monospace" font-size="16" fill="#1a1a1a">WebView2</text>
+
+    <rect x="56" y="288" width="232" height="36" rx="6" fill="#f3e8e6" stroke="#c42b1c"/>
+    <text x="172" y="311" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Segoe UI, monospace" font-size="16" font-weight="700" fill="#c42b1c">no set_status</text>
+  </g>
+
+  <g id="project-proof">
+    <rect x="620" y="40" width="528" height="320" rx="8" fill="#ffffff" stroke="#c5cdd6"/>
+    <rect x="620" y="40" width="528" height="36" rx="8" fill="#f3f3f3"/>
+    <rect x="620" y="64" width="528" height="12" fill="#f3f3f3"/>
+    <rect x="632" y="50" width="16" height="16" rx="3" fill="url(#glyph)"/>
+    <text x="656" y="63" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" fill="#5d5d5d">board · schematic</text>
+    <text x="1132" y="63" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#5d5d5d">:7420</text>
+
+    <!-- columns -->
+    <rect x="636" y="88" width="118" height="196" rx="6" fill="#f7f8fa" stroke="#dde3ea"/>
+    <rect x="762" y="88" width="118" height="196" rx="6" fill="#f7f8fa" stroke="#dde3ea"/>
+    <rect x="888" y="88" width="118" height="196" rx="6" fill="#f7f8fa" stroke="#dde3ea"/>
+    <rect x="1014" y="88" width="118" height="196" rx="6" fill="#f7f8fa" stroke="#dde3ea"/>
+
+    <text x="695" y="114" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#5d5d5d">todo</text>
+    <text x="821" y="114" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#5d5d5d">in_progress</text>
+    <text x="947" y="114" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#5d5d5d">review</text>
+    <text x="1073" y="114" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#5d5d5d">done</text>
+
+    <rect x="646" y="128" width="98" height="70" rx="6" fill="#ffffff" stroke="#005fb8"/>
+    <text x="695" y="156" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#005fb8">create</text>
+    <text x="695" y="180" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">disc_</text>
+
+    <rect x="772" y="128" width="98" height="70" rx="6" fill="#ffffff" stroke="#9d5d00"/>
+    <text x="821" y="156" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#9d5d00">claim</text>
+    <text x="821" y="180" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build_</text>
+
+    <rect x="898" y="128" width="98" height="70" rx="6" fill="#ffffff" stroke="#5c2d91"/>
+    <text x="947" y="156" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#5c2d91">submit</text>
+    <text x="947" y="180" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build_</text>
+
+    <rect x="1024" y="128" width="98" height="70" rx="6" fill="#ffffff" stroke="#1a1a1a"/>
+    <text x="1073" y="156" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#1a1a1a">pass</text>
+    <text x="1073" y="180" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">human</text>
+
+    <text x="695" y="226" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">discuss</text>
+    <text x="821" y="226" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build</text>
+    <text x="947" y="226" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build</text>
+    <text x="1073" y="226" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#c42b1c">admin only</text>
+
+    <rect x="636" y="296" width="246" height="48" rx="6" fill="#e8f1fa" stroke="#005fb8"/>
+    <text x="759" y="318" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#005fb8">disc_  discuss seat</text>
+    <text x="759" y="336" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">create / edit todo</text>
+
+    <rect x="890" y="296" width="246" height="48" rx="6" fill="#f4eef8" stroke="#5c2d91"/>
+    <text x="1013" y="318" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#5c2d91">build_  build seat</text>
+    <text x="1013" y="336" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">claim → submit</text>
+  </g>
+</svg>

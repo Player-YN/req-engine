@@ -2,12 +2,70 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="req-engine: Zero-LLM local verb store. Status comes from verbs, not set_status. Discuss (disc_) and build (build_) MCP seats bind agents; a human completes review. The engine never calls a model. Board panel is a schematic.">
+</p>
+
 **A Zero-LLM verb-based requirements store.** Rust + SQLite enforce the lifecycle. A Windows WebView2 board is the human seat. MCP `disc_` / `build_` pair codes bind coding agents to one project and one role. The engine never calls a model.
 
 [![Rust](https://img.shields.io/badge/Rust-axum%20%2B%20rusqlite%20%2B%20rmcp-dea584?logo=rust)](req-engine/Cargo.toml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](req-engine/Cargo.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Real entry: double-click [`启动需求引擎.bat`](启动需求引擎.bat) / [`启动需求引擎.vbs`](启动需求引擎.vbs), or `cargo run -- desktop` from [`req-engine/`](req-engine/).
+**Who it is for.** People who run local coding-agent hosts (Cursor, Claude Desktop, Codex, Grok, …) and want a board those agents cannot rewrite. Humans who decide `done`.
+
+**What it is not.** Not an agent runtime, worker pool, or IDLE scheduler. Not a cloud SaaS. Not a model wrapper — Zero LLM inside the engine is the contract. Not a free-form Kanban you can `PATCH` into consistency. [`demo/*.html`](demo/) files are **static mocks**, not the runtime UI. MCP `--role` + token is a **debug** back door; do not ship it.
+
+## Start here
+
+**Windows is the official path.** You need [Rust](https://rustup.rs) and the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (already on most Win10/11).
+
+1. Double-click [`启动需求引擎.bat`](启动需求引擎.bat) (or [`启动需求引擎.vbs`](启动需求引擎.vbs) once a binary exists). First run builds `target/release/req-engine.exe` if needed, then starts a **hidden-console** desktop on `--home req-engine/data --port 7420`.
+2. Or from a terminal:
+
+```powershell
+cd req-engine
+cargo run -- desktop --home ./data
+```
+
+That opens a **native** WebView2 window (not a browser tab), auto-inits an empty SQLite home, and injects the admin token. Close hides to the tray; quit only from the tray menu.
+
+3. Create a project on the board. **Copy discuss** or **Copy build**. Paste the pack into the **agent host** MCP config — the board is not an MCP client.
+
+```json
+{
+  "mcpServers": {
+    "req-engine-discuss": {
+      "command": "C:\\path\\to\\req-engine.exe",
+      "args": ["mcp", "--pair", "disc_…", "--home", "C:\\path\\to\\req-engine\\data"]
+    }
+  }
+}
+```
+
+Host and desktop **must share `--home`**. Templates: [`req-engine/examples/`](req-engine/examples/). Matrix: [`req-engine/docs/MCP.md`](req-engine/docs/MCP.md).
+
+Double-click launchers pin `req-engine/data`. Without `--home` / `REQ_ENGINE_HOME`, the CLI default is `%USERPROFILE%\.req-engine` (Unix: `~/.req-engine`).
+
+<details>
+<summary>Optional: seed data, API-only, tests</summary>
+
+```powershell
+cd req-engine
+cargo test
+cargo build --release
+
+# Optional demo projects on the desktop
+cargo run -- desktop --home ./data --seed-if-missing
+# or: cargo run -- seed --home ./data
+
+# API only (no native window)
+cargo run -- init --home ./data --seed
+cargo run -- serve --home ./data --host 127.0.0.1 --port 7420
+```
+
+Live HTTP smoke: `req-engine/scripts/smoke.ps1`. Browser-connect notes: [`WEB.md`](WEB.md) (optional).
+
+</details>
 
 ---
 
@@ -15,13 +73,17 @@ Real entry: double-click [`启动需求引擎.bat`](启动需求引擎.bat) / [`
 
 Writing a requirement and implementing it are different jobs. Discussion agents should create and refine todos. Implementer agents should claim work and submit it. A human should decide done. Most “AI boards” collapse those jobs into a chatbot that can also `PATCH` status to whatever it likes.
 
-`req-engine` is the opposite: a **local state machine with seats**. Intelligence stays in the agent host (Cursor, Claude, Codex, Grok, …). The engine only stores facts, rejects illegal verbs, and shows who is seated.
+`req-engine` is the opposite: a **local state machine with seats**. Intelligence stays in the agent host. The engine only stores facts, rejects illegal verbs, and shows who is seated.
 
 ## Why verbs beat `set_status`
 
 A free-form status API is an invitation to invent workflow. Two agents can mark the same card `done` without claiming it. A planner can skip review. A confused model can write `"in-review"` instead of `"review"`. You then debug the **prompt**, not the product.
 
 Here status is not a field you write. It is the **result of a verb**:
+
+<p align="center">
+  <img src="./assets/readme/workflow.svg" width="100%" alt="Schematic verb path: create to todo on the discuss seat, claim to in_progress on the build seat, submit to review, complete_review by admin to done or back to todo. set_status is rejected.">
+</p>
 
 | Verb | From | To | Who (HTTP) |
 |------|------|----|------------|
@@ -39,7 +101,7 @@ The machine lives in [`req-engine/src/domain/state.rs`](req-engine/src/domain/st
 
 ## Why Zero-LLM is a feature
 
-If the store can think, you cannot audit it. A model inside the engine would: invent transitions, hide failures in prose, and couple your board to an API key.
+If the store can think, you cannot audit it. A model inside the engine would invent transitions, hide failures in prose, and couple your board to an API key.
 
 This process does **not** call OpenAI, Anthropic, or any other model. MCP is a **server** the host connects to. Tokens and pair codes are ACL, not “AI keys”. Seat faces are a display map from self-reported `clientInfo.name` (known host or identicon) — **not authentication**.
 
@@ -68,8 +130,6 @@ You can unit-test every illegal transition without a GPU, a network, or a prompt
 | **MCP** | Product path: `--pair` binds **one project + one seat**. Debug `--role` + token exists; do not ship it. |
 | **Desktop** | Starts the API, serves [`req-engine/web/index.html`](req-engine/web/index.html), opens a **native** window (not a browser tab). Close hides to the tray; **退出** quits. |
 
-`demo/*.html` files are **static mocks**. They are not the runtime UI.
-
 ---
 
 ## Seats, pair codes, occupancy
@@ -81,57 +141,13 @@ Each project has two seats:
 | Discuss | `disc_` | planner | list / get / create / update `todo` / cancel `todo` | claim, submit, implement, `complete_review` |
 | Build | `build_` | foreman | `list_ready_tasks`, claim, progress, submit, release | create cards, `complete_review` |
 
-Desktop **Copy discuss / Copy build** puts a pair code plus an onboarding prompt on the clipboard. Paste that into the **agent host** MCP config — the board is not an MCP client.
+Desktop **Copy discuss / Copy build** puts a pair code plus an onboarding prompt on the clipboard.
 
 - SQLite stores **SHA-256** of the code (`discuss_pair_hash` / `build_pair_hash`).
 - Plaintext lives in `{home}/pair-codes.json` (gitignored). Rotate invalidates the old code immediately.
 - A seated MCP process heartbeats every **4s**. The UI treats a seat as occupied while `last_seen` is within **15s**. Clearing the process (or a different pid) drops the face.
 
 `list_ready_tasks` returns `todo` cards whose dependency ids are all `done`.
-
----
-
-## Run it
-
-**Windows, recommended**
-
-1. Install [Rust](https://rustup.rs) and the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (already on most Win10/11).
-2. Double-click `启动需求引擎.bat`. First run builds `target/release/req-engine.exe` if needed, then the VBS launcher starts a **hidden-console** desktop on `--home req-engine/data --port 7420`.
-3. Create a project on the board. Copy a discuss or build pack. Register it in Cursor / Claude Desktop / Codex / any MCP host:
-
-```json
-{
-  "mcpServers": {
-    "req-engine-discuss": {
-      "command": "C:\\path\\to\\req-engine.exe",
-      "args": ["mcp", "--pair", "disc_…", "--home", "C:\\path\\to\\req-engine\\data"]
-    }
-  }
-}
-```
-
-Host and desktop **must share `--home`**. Templates: [`req-engine/examples/`](req-engine/examples/). Full matrix: [`req-engine/docs/MCP.md`](req-engine/docs/MCP.md).
-
-**From a terminal**
-
-```powershell
-cd req-engine
-cargo test
-cargo build --release
-
-# Native window (auto-inits an empty DB; injects the admin token)
-cargo run -- desktop --home ./data
-# Optional demo projects:  --seed-if-missing
-# or: cargo run -- seed --home ./data
-
-# API only
-cargo run -- init --home ./data --seed
-cargo run -- serve --home ./data --host 127.0.0.1 --port 7420
-```
-
-Without `--home` / `REQ_ENGINE_HOME`, the default is `%USERPROFILE%\.req-engine` (Unix: `~/.req-engine`). The double-click launchers pin `req-engine/data` so the window and MCP stay on the same file.
-
-Smoke (live HTTP): `req-engine/scripts/smoke.ps1`.
 
 ---
 
@@ -194,4 +210,4 @@ Crate-level developer notes: [`req-engine/README.md`](req-engine/README.md).
 
 ---
 
-MIT. Target repo: [github.com/Player-YN/req-engine](https://github.com/Player-YN/req-engine).
+MIT. [github.com/Player-YN/req-engine](https://github.com/Player-YN/req-engine).

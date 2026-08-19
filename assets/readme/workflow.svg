@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-labelledby="title desc">
+  <title id="title">Verb machine</title>
+  <desc id="desc">Schematic of the only legal path: create to todo, claim to in_progress, submit_for_review to review, complete_review by admin to done or back to todo. No set_status. Discuss seat writes todos; build seat claims and submits; human completes review.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8eef5"/>
+      <stop offset="1" stop-color="#f3f4f6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="280" rx="16" fill="url(#bg)"/>
+  <text x="56" y="48" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="600" fill="#005fb8" letter-spacing="1.4">SCHEMATIC · VERBS ONLY</text>
+  <text x="1144" y="48" text-anchor="end" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#c42b1c">rejected: set_status</text>
+
+  <!-- nodes -->
+  <rect x="48" y="80" width="200" height="112" rx="8" fill="#ffffff" stroke="#005fb8"/>
+  <text x="148" y="116" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="20" fill="#005fb8">create</text>
+  <text x="148" y="144" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#1a1a1a">→ todo</text>
+  <text x="148" y="172" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">disc_  discuss</text>
+
+  <path d="M248 136 H288" stroke="#5d5d5d" stroke-width="2"/>
+  <polygon points="288,130 300,136 288,142" fill="#5d5d5d"/>
+
+  <rect x="300" y="80" width="200" height="112" rx="8" fill="#ffffff" stroke="#9d5d00"/>
+  <text x="400" y="116" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="20" fill="#9d5d00">claim</text>
+  <text x="400" y="144" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#1a1a1a">→ in_progress</text>
+  <text x="400" y="172" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build_  one winner</text>
+
+  <path d="M500 136 H540" stroke="#5d5d5d" stroke-width="2"/>
+  <polygon points="540,130 552,136 540,142" fill="#5d5d5d"/>
+
+  <rect x="552" y="80" width="200" height="112" rx="8" fill="#ffffff" stroke="#5c2d91"/>
+  <text x="652" y="116" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="20" fill="#5c2d91">submit</text>
+  <text x="652" y="144" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#1a1a1a">→ review</text>
+  <text x="652" y="172" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#5d5d5d">build_  claimant</text>
+
+  <path d="M752 136 H792" stroke="#5d5d5d" stroke-width="2"/>
+  <polygon points="792,130 804,136 792,142" fill="#5d5d5d"/>
+
+  <rect x="804" y="80" width="348" height="112" rx="8" fill="#ffffff" stroke="#1a1a1a"/>
+  <text x="978" y="116" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="20" fill="#1a1a1a">complete_review</text>
+  <text x="978" y="144" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#1a1a1a">pass → done   fail → todo</text>
+  <text x="978" y="172" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#c42b1c">human / admin HTTP only</text>
+
+  <text x="56" y="232" font-family="Segoe UI, sans-serif" font-size="18" fill="#5d5d5d">release returns in_progress → todo. cancel is soft. done and cancelled are terminal.</text>
+  <text x="56" y="258" font-family="Segoe UI, sans-serif" font-size="18" fill="#5d5d5d">Intelligence stays in the agent host. This process stores facts and rejects illegal verbs.</text>
+</svg>
